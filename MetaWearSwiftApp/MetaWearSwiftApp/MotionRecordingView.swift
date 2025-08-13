@@ -115,6 +115,15 @@ struct MotionRecordingView: View {
                     .frame(maxWidth: 200)
                 }
                 
+                Divider().frame(height: 16)
+                Text("Accel Source:")
+                    .font(.subheadline)
+                Picker("Accel Source", selection: $recordingManager.accelSource) {
+                    Text("Linear (Fusion)").tag(MotionRecordingManager.AccelSource.linearFusion)
+                    Text("Raw (400 Hz)").tag(MotionRecordingManager.AccelSource.raw)
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .frame(maxWidth: 260)
                 Spacer()
             }
             

@@ -131,6 +131,9 @@ class MotionRecordingManager: ObservableObject {
     // MetaWear sensor fusion for proper speed calculation
     private var sensorFusionData: [Timestamped<SensorFusionData>] = []
     
+    enum AccelSource: String, CaseIterable { case linearFusion, raw }
+    @Published var accelSource: AccelSource = .linearFusion // UI selects before logging
+    
     // Simplified sensor fusion data structure
     struct SensorFusionData {
         let linearAcceleration: SIMD3<Float>  // Gravity-removed acceleration
@@ -340,27 +343,21 @@ class MotionRecordingManager: ObservableObject {
     private func startFreshLogging(device: MetaWear) {
         print("🚀 Starting fresh logging after device reset...")
         
-        // Use MetaWear sensor fusion for proper speed calculation
-        let linearAcceleration = MWSensorFusion.LinearAcceleration(mode: .ndof)  // Gravity-removed acceleration (~100 Hz)
-        let gyroscope = MWGyroscope(rate: .hz100, range: .dps1000)               // Gyroscope at 100Hz
-        let magnetometer = MWMagnetometer(freq: .hz25)                           // Magnetometer at 25Hz
-        
-        print("📊 Sensor configuration (METAWEAR SENSOR FUSION):")
-        print("   - Linear Acceleration: NDOF (gravity removed)")
-        print("   - Speed: Calculated from linear acceleration with simplified integration")
-        print("   - Gyroscope: 100Hz, ±1000°/s range") 
-        print("   - Magnetometer: 25Hz")
+        let gyroscope = MWGyroscope(rate: .hz100, range: .dps1000)
+        let magnetometer = MWMagnetometer(freq: .hz25)
         
         sensorsStarted = 0
-        let totalSensors = 3 // Linear acceleration, gyroscope, magnetometer
+        let totalSensors = 3
         
-        // Start sensor fusion logging for proper speed calculation
-        print("📊 Starting sensor fusion logging...")
-        
-        // Log linear acceleration (gravity-removed)
-        device.publish()
-            .log(linearAcceleration)
-            .sink(
+        switch accelSource {
+        case .linearFusion:
+            print("📊 Sensor configuration (FUSION LINEAR ACCEL):")
+            print("   - Linear Acceleration (NDOF)")
+            print("   - Gyroscope 100Hz, Magnetometer 25Hz")
+            let linearAcceleration = MWSensorFusion.LinearAcceleration(mode: .ndof)
+            device.publish()
+                .log(linearAcceleration)
+                .sink(
                 receiveCompletion: { [weak self] result in
                     switch result {
                     case .finished:
@@ -386,8 +383,33 @@ class MotionRecordingManager: ObservableObject {
                 }
             )
             .store(in: &cancellables)
-
-        // (Raw accelerometer disabled to avoid conflicts with sensor fusion logging)
+        case .raw:
+            print("📊 Sensor configuration (RAW ACCEL 400Hz):")
+            print("   - Raw Accelerometer 400Hz (±8g)")
+            print("   - Gyroscope 100Hz, Magnetometer 25Hz")
+            let rawAccelerometer = MWAccelerometer(rate: .hz400, gravity: .g8)
+            device.publish()
+                .log(rawAccelerometer)
+                .sink(
+                    receiveCompletion: { [weak self] result in
+                        switch result {
+                        case .finished: break
+                        case .failure(let error):
+                            print("❌ Raw accelerometer logging failed: \(error)")
+                            self?.setError("Raw accelerometer logging failed: \(error.localizedDescription)")
+                        }
+                    },
+                    receiveValue: { [weak self] _ in
+                        guard let self = self else { return }
+                        guard device.peripheral.state == .connected else { self.setError("Device disconnected during accelerometer setup"); return }
+                        print("📈 Raw accelerometer logging started")
+                        self.sensorsStarted += 1
+                        print("🔄 Sensors started: \(self.sensorsStarted)/\(totalSensors)")
+                        if self.sensorsStarted == totalSensors { self.beginRecordingSession() }
+                    }
+                )
+                .store(in: &cancellables)
+        }
         
         // Start gyroscope logging - EXACT working pattern
         device.publish()
@@ -677,9 +699,16 @@ class MotionRecordingManager: ObservableObject {
         
         print("📊 Sensor fusion data built: \(sensorFusionData.count) complete samples")
         
-        // Calculate speed from linear acceleration data (simplified integration)
-        print("🚀 Calculating speed from linear acceleration data with simplified integration...")
-        let speedAndVelocity = calculateSpeedFromSensorFusionData(sensorFusionData)
+        // Calculate speed based on selected accel source
+        let speedAndVelocity: (speed: [Timestamped<Float>], velocity: [Timestamped<SIMD3<Float>>])
+        switch accelSource {
+        case .linearFusion:
+            print("🚀 Calculating speed from linear acceleration (fusion) with simplified integration...")
+            speedAndVelocity = calculateSpeedFromSensorFusionData(sensorFusionData)
+        case .raw:
+            print("🚀 Calculating speed from RAW accelerometer (gravity-removal + integration)...")
+            speedAndVelocity = calculateSpeedFromRawAccelerometer(accelerometerData)
+        }
         speedData = speedAndVelocity.speed
         velocityData = speedAndVelocity.velocity
         
@@ -713,8 +742,12 @@ class MotionRecordingManager: ObservableObject {
                 print("   📊 Raw Accelerometer: \(accelerometerData.count) samples (gravity removed in processing)")
                 print("   🔄 Gyroscope: \(gyroscopeData.count) samples")
                 print("   🧲 Magnetometer: \(magnetometerData.count) samples")
-                print("   🔄 Linear Acceleration: \(sensorFusionData.count) samples (for speed calculation)")
-                print("   🚀 Speed: \(speedData.count) samples (calculated from linear acceleration)")
+                if self?.accelSource == .linearFusion {
+                    print("   🔄 Linear Acceleration: \(sensorFusionData.count) samples (for speed calculation)")
+                } else {
+                    print("   📈 Raw Accel used for speed (samples: \(accelerometerData.count))")
+                }
+                print("   🚀 Speed: \(speedData.count) samples (calculated)")
                 print("   🧭 Velocity vectors: \(velocityData.count) samples (vx, vy, vz)")
                 print("   ⏱️ Duration: \(String(format: "%.2f", recordingData.recordingDuration))s")
                 
@@ -926,6 +959,66 @@ class MotionRecordingManager: ObservableObject {
         }
         
         return (speed: speedData, velocity: velocityData)
+    }
+    
+    // RAW accelerometer path: gravity removal (LPF when stationary) + integration
+    private func calculateSpeedFromRawAccelerometer(_ accel: [Timestamped<SIMD3<Float>>]) -> (speed: [Timestamped<Float>], velocity: [Timestamped<SIMD3<Float>>]) {
+        guard accel.count > 1 else { return ([], []) }
+        var speed: [Timestamped<Float>] = []
+        var velocitySeries: [Timestamped<SIMD3<Float>>] = []
+        var lastTime = accel[0].time
+        let startTime = accel[0].time
+        let warmup: Float = 2.5
+        let g: Float = 9.80665
+        
+        // Running gravity estimate
+        var gravity = SIMD3<Float>(0,0,0)
+        var gravityInit = false
+        let gravityAlphaMoving: Float = 0.02
+        let gravityAlphaStill: Float = 0.2
+        
+        var velocity = SIMD3<Float>(0,0,0)
+        let tau: Float = 0.5
+        var stationaryTimer: Float = 0
+        let zuptAfter: Float = 0.5
+        
+        for i in 0..<accel.count {
+            let sample = accel[i]
+            let dt = Float(sample.time.timeIntervalSince(lastTime))
+            lastTime = sample.time
+            if !(dt > 0 && dt < 1) { continue }
+            let t = Float(sample.time.timeIntervalSince(startTime))
+            if t < warmup { velocity = .zero; gravity = .zero; gravityInit = false; stationaryTimer = 0; continue }
+            
+            // raw in g -> m/s^2
+            let a = sample.value * g
+            // gravity estimate update (faster when still)
+            let alpha = gravityInit ? (simd_length(a) < 0.3 ? gravityAlphaStill : gravityAlphaMoving) : 1.0
+            gravity = gravity * (1 - alpha) + a * alpha
+            gravityInit = true
+            let motionA = a - gravity
+            
+            // motion magnitude for stationary detection
+            let horiz = SIMD2<Float>(motionA.x, motionA.y)
+            let mag = simd_length(horiz)
+            if mag < 0.1 { // near still
+                stationaryTimer += dt
+                if stationaryTimer > zuptAfter { velocity = .zero }
+            } else {
+                stationaryTimer = 0
+            }
+            
+            // integrate + time-based decay
+            velocity += motionA * dt
+            velocity *= exp(-dt / tau)
+            
+            // outputs (horizontal speed only for chart consistency)
+            let horizV = SIMD2<Float>(velocity.x, velocity.y)
+            let s = simd_length(horizV)
+            speed.append(Timestamped(time: sample.time, value: s))
+            velocitySeries.append(Timestamped(time: sample.time, value: velocity))
+        }
+        return (speed, velocitySeries)
     }
     
     // Helper function to convert quaternion to rotation matrix
