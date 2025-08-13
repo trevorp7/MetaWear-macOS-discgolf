@@ -1,0 +1,466 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		620800C02E3C0A9D001493E3 /* MetaWearSwiftAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 620800BF2E3C0A9D001493E3 /* MetaWearSwiftAppApp.swift */; };
+		620800C72E3C0A9F001493E3 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 620800C62E3C0A9F001493E3 /* Preview Assets.xcassets */; };
+		62787A012E3C28D70011A7C9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627879F02E3C28D40011A7C9 /* ContentView.swift */; };
+		62787A022E3C28D70011A7C9 /* DeviceTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627879F12E3C28D40011A7C9 /* DeviceTest.swift */; };
+		62787A032E3C28D70011A7C9 /* ContinuationTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627879F22E3C28D40011A7C9 /* ContinuationTest.swift */; };
+		62787A042E3C28D70011A7C9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 627879F32E3C28D40011A7C9 /* Assets.xcassets */; };
+		62787A072E3C28D70011A7C9 /* ConcurrencyTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627879F62E3C28D50011A7C9 /* ConcurrencyTest.swift */; };
+		62787A082E3C28D70011A7C9 /* TestMetaWearImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627879F82E3C28D50011A7C9 /* TestMetaWearImport.swift */; };
+		62787A092E3C28D70011A7C9 /* Preview Content in Resources */ = {isa = PBXBuildFile; fileRef = 627879F92E3C28D50011A7C9 /* Preview Content */; };
+		62787A0A2E3C28D70011A7C9 /* TestCompilation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627879FA2E3C28D60011A7C9 /* TestCompilation.swift */; };
+		62787A0B2E3C28D70011A7C9 /* SpeedCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627879FB2E3C28D60011A7C9 /* SpeedCalculator.swift */; };
+		62787A0C2E3C28D70011A7C9 /* SpeedIntegrationExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627879FC2E3C28D60011A7C9 /* SpeedIntegrationExample.swift */; };
+		62787A0E2E3C28D70011A7C9 /* SpeedTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627879FE2E3C28D70011A7C9 /* SpeedTrackingView.swift */; };
+		62787A0F2E3C28D70011A7C9 /* BluetoothHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627879FF2E3C28D70011A7C9 /* BluetoothHelper.swift */; };
+		62787A102E3C28D70011A7C9 /* Speed_Tracking_README.md in Resources */ = {isa = PBXBuildFile; fileRef = 62787A002E3C28D70011A7C9 /* Speed_Tracking_README.md */; };
+		62787A132E3C291D0011A7C9 /* MetaWear in Frameworks */ = {isa = PBXBuildFile; productRef = 62787A122E3C291D0011A7C9 /* MetaWear */; };
+		62787A162E3C54750011A7C9 /* MotionDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62787A142E3C54750011A7C9 /* MotionDetector.swift */; };
+		62787A172E3C54750011A7C9 /* MotionDetectionTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62787A152E3C54750011A7C9 /* MotionDetectionTestView.swift */; };
+		62787A1A2E3C56620011A7C9 /* HighFrequencyLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62787A182E3C56610011A7C9 /* HighFrequencyLogger.swift */; };
+		62787A1B2E3C56620011A7C9 /* HighFrequencyLoggerTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62787A192E3C56620011A7C9 /* HighFrequencyLoggerTestView.swift */; };
+		62787A1E2E3C5B460011A7C9 /* IntegratedThrowDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62787A1C2E3C5B460011A7C9 /* IntegratedThrowDetector.swift */; };
+		62787A1F2E3C5B460011A7C9 /* IntegratedThrowDetectorTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62787A1D2E3C5B460011A7C9 /* IntegratedThrowDetectorTestView.swift */; };
+		62787A212E3D1C320011A7C9 /* SpeedAnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62787A202E3D1C320011A7C9 /* SpeedAnalysisView.swift */; };
+		62787A232E3D3E460011A7C9 /* MotionPlaygroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62787A222E3D3E460011A7C9 /* MotionPlaygroundView.swift */; };
+		62787A262E4C2C380011A7C9 /* MotionRecordingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62787A242E4C2C380011A7C9 /* MotionRecordingManager.swift */; };
+		62787A272E4C2C380011A7C9 /* MotionRecordingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62787A252E4C2C380011A7C9 /* MotionRecordingView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		620800BC2E3C0A9D001493E3 /* MetaWearSwiftApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MetaWearSwiftApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		620800BF2E3C0A9D001493E3 /* MetaWearSwiftAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetaWearSwiftAppApp.swift; sourceTree = "<group>"; };
+		620800C62E3C0A9F001493E3 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		620800C82E3C0A9F001493E3 /* MetaWearSwiftApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MetaWearSwiftApp.entitlements; sourceTree = "<group>"; };
+		627879F02E3C28D40011A7C9 /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		627879F12E3C28D40011A7C9 /* DeviceTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeviceTest.swift; sourceTree = "<group>"; };
+		627879F22E3C28D40011A7C9 /* ContinuationTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContinuationTest.swift; sourceTree = "<group>"; };
+		627879F32E3C28D40011A7C9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		627879F42E3C28D50011A7C9 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		627879F52E3C28D50011A7C9 /* MetaWearSwiftAppApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetaWearSwiftAppApp.swift; sourceTree = "<group>"; };
+		627879F62E3C28D50011A7C9 /* ConcurrencyTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ConcurrencyTest.swift; sourceTree = "<group>"; };
+		627879F72E3C28D50011A7C9 /* MetaWearSwiftApp.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = MetaWearSwiftApp.entitlements; sourceTree = "<group>"; };
+		627879F82E3C28D50011A7C9 /* TestMetaWearImport.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestMetaWearImport.swift; sourceTree = "<group>"; };
+		627879F92E3C28D50011A7C9 /* Preview Content */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Preview Content"; sourceTree = "<group>"; };
+		627879FA2E3C28D60011A7C9 /* TestCompilation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestCompilation.swift; sourceTree = "<group>"; };
+		627879FB2E3C28D60011A7C9 /* SpeedCalculator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SpeedCalculator.swift; sourceTree = "<group>"; };
+		627879FC2E3C28D60011A7C9 /* SpeedIntegrationExample.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SpeedIntegrationExample.swift; sourceTree = "<group>"; };
+		627879FE2E3C28D70011A7C9 /* SpeedTrackingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SpeedTrackingView.swift; sourceTree = "<group>"; };
+		627879FF2E3C28D70011A7C9 /* BluetoothHelper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BluetoothHelper.swift; sourceTree = "<group>"; };
+		62787A002E3C28D70011A7C9 /* Speed_Tracking_README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = Speed_Tracking_README.md; sourceTree = "<group>"; };
+		62787A142E3C54750011A7C9 /* MotionDetector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MotionDetector.swift; sourceTree = "<group>"; };
+		62787A152E3C54750011A7C9 /* MotionDetectionTestView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MotionDetectionTestView.swift; sourceTree = "<group>"; };
+		62787A182E3C56610011A7C9 /* HighFrequencyLogger.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HighFrequencyLogger.swift; sourceTree = "<group>"; };
+		62787A192E3C56620011A7C9 /* HighFrequencyLoggerTestView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HighFrequencyLoggerTestView.swift; sourceTree = "<group>"; };
+		62787A1C2E3C5B460011A7C9 /* IntegratedThrowDetector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IntegratedThrowDetector.swift; sourceTree = "<group>"; };
+		62787A1D2E3C5B460011A7C9 /* IntegratedThrowDetectorTestView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IntegratedThrowDetectorTestView.swift; sourceTree = "<group>"; };
+		62787A202E3D1C320011A7C9 /* SpeedAnalysisView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SpeedAnalysisView.swift; sourceTree = "<group>"; };
+		62787A222E3D3E460011A7C9 /* MotionPlaygroundView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MotionPlaygroundView.swift; sourceTree = "<group>"; };
+		62787A242E4C2C380011A7C9 /* MotionRecordingManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MotionRecordingManager.swift; sourceTree = "<group>"; };
+		62787A252E4C2C380011A7C9 /* MotionRecordingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MotionRecordingView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		620800B92E3C0A9D001493E3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				62787A132E3C291D0011A7C9 /* MetaWear in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		620800B32E3C0A9D001493E3 = {
+			isa = PBXGroup;
+			children = (
+				620800BE2E3C0A9D001493E3 /* MetaWearSwiftApp */,
+				620800BD2E3C0A9D001493E3 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		620800BD2E3C0A9D001493E3 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				620800BC2E3C0A9D001493E3 /* MetaWearSwiftApp.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		620800BE2E3C0A9D001493E3 /* MetaWearSwiftApp */ = {
+			isa = PBXGroup;
+			children = (
+				627879F32E3C28D40011A7C9 /* Assets.xcassets */,
+				627879FF2E3C28D70011A7C9 /* BluetoothHelper.swift */,
+				627879F62E3C28D50011A7C9 /* ConcurrencyTest.swift */,
+				627879F42E3C28D50011A7C9 /* Info.plist */,
+				627879F02E3C28D40011A7C9 /* ContentView.swift */,
+				627879F22E3C28D40011A7C9 /* ContinuationTest.swift */,
+				62787A202E3D1C320011A7C9 /* SpeedAnalysisView.swift */,
+				62787A1C2E3C5B460011A7C9 /* IntegratedThrowDetector.swift */,
+				62787A242E4C2C380011A7C9 /* MotionRecordingManager.swift */,
+				62787A252E4C2C380011A7C9 /* MotionRecordingView.swift */,
+				62787A1D2E3C5B460011A7C9 /* IntegratedThrowDetectorTestView.swift */,
+				627879F12E3C28D40011A7C9 /* DeviceTest.swift */,
+				627879F72E3C28D50011A7C9 /* MetaWearSwiftApp.entitlements */,
+				627879F52E3C28D50011A7C9 /* MetaWearSwiftAppApp.swift */,
+				627879F92E3C28D50011A7C9 /* Preview Content */,
+				62787A002E3C28D70011A7C9 /* Speed_Tracking_README.md */,
+				627879FB2E3C28D60011A7C9 /* SpeedCalculator.swift */,
+				627879FC2E3C28D60011A7C9 /* SpeedIntegrationExample.swift */,
+				627879FE2E3C28D70011A7C9 /* SpeedTrackingView.swift */,
+				627879FA2E3C28D60011A7C9 /* TestCompilation.swift */,
+				62787A222E3D3E460011A7C9 /* MotionPlaygroundView.swift */,
+				62787A182E3C56610011A7C9 /* HighFrequencyLogger.swift */,
+				62787A192E3C56620011A7C9 /* HighFrequencyLoggerTestView.swift */,
+				62787A152E3C54750011A7C9 /* MotionDetectionTestView.swift */,
+				62787A142E3C54750011A7C9 /* MotionDetector.swift */,
+				627879F82E3C28D50011A7C9 /* TestMetaWearImport.swift */,
+				620800BF2E3C0A9D001493E3 /* MetaWearSwiftAppApp.swift */,
+				620800C82E3C0A9F001493E3 /* MetaWearSwiftApp.entitlements */,
+				620800C52E3C0A9F001493E3 /* Preview Content */,
+			);
+			path = MetaWearSwiftApp;
+			sourceTree = "<group>";
+		};
+		620800C52E3C0A9F001493E3 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				620800C62E3C0A9F001493E3 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		620800BB2E3C0A9D001493E3 /* MetaWearSwiftApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 620800CB2E3C0A9F001493E3 /* Build configuration list for PBXNativeTarget "MetaWearSwiftApp" */;
+			buildPhases = (
+				620800B82E3C0A9D001493E3 /* Sources */,
+				620800B92E3C0A9D001493E3 /* Frameworks */,
+				620800BA2E3C0A9D001493E3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MetaWearSwiftApp;
+			packageProductDependencies = (
+				62787A122E3C291D0011A7C9 /* MetaWear */,
+			);
+			productName = MetaWearSwiftApp;
+			productReference = 620800BC2E3C0A9D001493E3 /* MetaWearSwiftApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		620800B42E3C0A9D001493E3 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1430;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					620800BB2E3C0A9D001493E3 = {
+						CreatedOnToolsVersion = 14.3;
+					};
+				};
+			};
+			buildConfigurationList = 620800B72E3C0A9D001493E3 /* Build configuration list for PBXProject "MetaWearSwiftApp" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 620800B32E3C0A9D001493E3;
+			packageReferences = (
+				62787A112E3C291D0011A7C9 /* XCRemoteSwiftPackageReference "MetaWear-Swift-Combine-SDK" */,
+			);
+			productRefGroup = 620800BD2E3C0A9D001493E3 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				620800BB2E3C0A9D001493E3 /* MetaWearSwiftApp */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		620800BA2E3C0A9D001493E3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				62787A092E3C28D70011A7C9 /* Preview Content in Resources */,
+				62787A102E3C28D70011A7C9 /* Speed_Tracking_README.md in Resources */,
+				620800C72E3C0A9F001493E3 /* Preview Assets.xcassets in Resources */,
+				62787A042E3C28D70011A7C9 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		620800B82E3C0A9D001493E3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				62787A032E3C28D70011A7C9 /* ContinuationTest.swift in Sources */,
+				62787A262E4C2C380011A7C9 /* MotionRecordingManager.swift in Sources */,
+				62787A0B2E3C28D70011A7C9 /* SpeedCalculator.swift in Sources */,
+				62787A172E3C54750011A7C9 /* MotionDetectionTestView.swift in Sources */,
+				62787A0C2E3C28D70011A7C9 /* SpeedIntegrationExample.swift in Sources */,
+				62787A212E3D1C320011A7C9 /* SpeedAnalysisView.swift in Sources */,
+				620800C02E3C0A9D001493E3 /* MetaWearSwiftAppApp.swift in Sources */,
+				62787A0E2E3C28D70011A7C9 /* SpeedTrackingView.swift in Sources */,
+				62787A012E3C28D70011A7C9 /* ContentView.swift in Sources */,
+				62787A082E3C28D70011A7C9 /* TestMetaWearImport.swift in Sources */,
+				62787A022E3C28D70011A7C9 /* DeviceTest.swift in Sources */,
+				62787A0F2E3C28D70011A7C9 /* BluetoothHelper.swift in Sources */,
+				62787A1A2E3C56620011A7C9 /* HighFrequencyLogger.swift in Sources */,
+				62787A232E3D3E460011A7C9 /* MotionPlaygroundView.swift in Sources */,
+				62787A072E3C28D70011A7C9 /* ConcurrencyTest.swift in Sources */,
+				62787A0A2E3C28D70011A7C9 /* TestCompilation.swift in Sources */,
+				62787A1E2E3C5B460011A7C9 /* IntegratedThrowDetector.swift in Sources */,
+				62787A1F2E3C5B460011A7C9 /* IntegratedThrowDetectorTestView.swift in Sources */,
+				62787A1B2E3C56620011A7C9 /* HighFrequencyLoggerTestView.swift in Sources */,
+				62787A272E4C2C380011A7C9 /* MotionRecordingView.swift in Sources */,
+				62787A162E3C54750011A7C9 /* MotionDetector.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		620800C92E3C0A9F001493E3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_FILE = "$(SRCROOT)/MetaWearSwiftApp/Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 13.3;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				NEW_SETTING = "";
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		620800CA2E3C0A9F001493E3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_FILE = "$(SRCROOT)/MetaWearSwiftApp/Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 13.3;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				NEW_SETTING = "";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		620800CC2E3C0A9F001493E3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MetaWearSwiftApp/MetaWearSwiftApp.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"MetaWearSwiftApp/Preview Content\"";
+				DEVELOPMENT_TEAM = 4TQ5GQZ7XV;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = disc.MetaWearSwiftApp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		620800CD2E3C0A9F001493E3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MetaWearSwiftApp/MetaWearSwiftApp.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"MetaWearSwiftApp/Preview Content\"";
+				DEVELOPMENT_TEAM = 4TQ5GQZ7XV;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = disc.MetaWearSwiftApp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		620800B72E3C0A9D001493E3 /* Build configuration list for PBXProject "MetaWearSwiftApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				620800C92E3C0A9F001493E3 /* Debug */,
+				620800CA2E3C0A9F001493E3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		620800CB2E3C0A9F001493E3 /* Build configuration list for PBXNativeTarget "MetaWearSwiftApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				620800CC2E3C0A9F001493E3 /* Debug */,
+				620800CD2E3C0A9F001493E3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		62787A112E3C291D0011A7C9 /* XCRemoteSwiftPackageReference "MetaWear-Swift-Combine-SDK" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mbientlab/MetaWear-Swift-Combine-SDK";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.5.3;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		62787A122E3C291D0011A7C9 /* MetaWear */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 62787A112E3C291D0011A7C9 /* XCRemoteSwiftPackageReference "MetaWear-Swift-Combine-SDK" */;
+			productName = MetaWear;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 620800B42E3C0A9D001493E3 /* Project object */;
+}

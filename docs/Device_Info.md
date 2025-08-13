@@ -1,5 +1,7 @@
 # 📱 Device Information
 
+THERE ARE ISDUES WITH THIS DOC - NOT A PERFECT SOURCE OF TRUTH. ESPECIALLY WITH SMAPLING RATES. LOGGING HAS HIGHER SAMPLING RATES THAN STREAMING - TREVOR
+
 Technical specifications and details for the MetaMotionRL sensor.
 
 ## 🎯 Device Overview

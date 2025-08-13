@@ -88,33 +88,206 @@ When making changes in this Cursor project:
    - ❌ Don't skip error handling in publisher chains
    - ❌ Don't assume quaternion access patterns (check existing code)
 
-## Accelerometer Interface Features
+## Coding Standards
 
-**See `MetaWear_Motion_Reference.md` for detailed accelerometer and motion functionality.**
+### Swift/SwiftUI Guidelines
+- Use `@StateObject` for ObservableObject instances in SwiftUI
+- Use `@Published` properties for reactive updates
+- Implement proper memory management with weak references
+- Use conditional compilation for SDK-dependent code
+- Follow Combine patterns for data streaming
 
-### Key Features
-- **Real-time streaming** of accelerometer data
-- **Configurable settings** for sample rate and gravity range
-- **Data history** with automatic cleanup
-- **Statistics calculation** for motion analysis
-- **Combine integration** for reactive programming
-- **SwiftUI support** with `@Published` properties
+### MetaWear SDK Usage
+- **ALWAYS use the MetaWear Swift Combine SDK**
+- **ALWAYS use `metawear.publish()` for device operations** (not `publishWhenConnected()`)
+- **ALWAYS use the exact publisher chain pattern**: `.publish().stream().receive(on:).handleEvents().sink()`
+- Handle errors properly with `.sink(receiveCompletion:receiveValue:)`
+- Use the BLE queue for SDK operations: `metawear.bleQueue`
+- Implement proper cleanup in `receiveCancel` or `deinit`
+- **CRITICAL:** Only use documented methods from the reference documents
+- **NEVER invent new methods or assume functionality exists**
+- **ALWAYS reference the motion reference document for motion-related features**
 
-## Development Context
+### Working Code Templates
+**ALWAYS copy these exact patterns from working code:**
 
-### Current Status
-- **Xcode Project:** Located at `/Users/trevorparker/Documents/mbient_labs/MetaWearSwiftApp`
-- **Compilation:** All errors resolved, project builds successfully
-- **SDK Integration:** MetaWear SDK added as package dependency
-- **Functionality:** Accelerometer interface ready for use with real sensor data streaming
-- **Development Approach:** Direct file editing through Cursor environment
+```swift
+// Device access pattern
+guard let device = metawearManager.metawear else { return }
 
-### Next Steps
-1. **Connect to Real Device:** Implement MetaWear device scanning and connection
-2. **Add Visualizations:** Create charts and graphs for data display
-3. **Data Logging:** Implement data persistence and export functionality
-4. **Gesture Recognition:** Add motion pattern detection
-5. **UI Enhancements:** Improve SwiftUI interface and user experience
+// Publisher chain pattern
+device.publish()
+    .stream(sensor)
+    .receive(on: DispatchQueue.main)
+    .handleEvents(receiveOutput: { [weak self] data in
+        // Process data here
+    })
+    .sink(
+        receiveCompletion: { completion in
+            // Handle completion/error
+        },
+        receiveValue: { _ in
+            // Data processed in handleEvents
+        }
+    )
+    .store(in: &cancellables)
+```
+
+### Error Handling
+- Provide meaningful error messages
+- Use conditional compilation to handle SDK unavailability
+- Implement graceful fallbacks for missing functionality
+- Log errors for debugging
+
+### Compilation Error Prevention
+**BEFORE making changes, ALWAYS:**
+
+1. **Check Existing Working Code**:
+   - Look at `SpeedCalculator.swift` for working patterns
+   - Use `grep_search` to find existing implementations
+   - Copy exact patterns, don't modify them
+
+2. **Validate Data Types**:
+   - SIMD3<Float> access: `data.value.x, data.value.y, data.value.z`
+   - Quaternion access: `quat.vector.w, quat.vector.x, quat.vector.y, quat.vector.z`
+   - Timestamped data: `data.value` and `data.time`
+
+3. **Test Incrementally**:
+   - Add ONE sensor at a time
+   - Compile after each addition
+   - Fix errors immediately before adding more
+
+4. **Common Error Sources**:
+   - Wrong property names (`.metawear` not `.device`)
+   - Wrong constructor parameters (check SDK docs)
+   - Wrong publisher chain patterns
+   - Missing error handling in `.sink()`
+
+## File Management
+
+### Development Workflow
+1. **Primary Development:** All coding happens directly in the Xcode project files
+2. **Direct Editing:** Use this Cursor environment to edit Xcode project files directly
+3. **Immediate Testing:** Build and test in Xcode immediately after changes
+4. **Real-time Iteration:** Make changes and test without file synchronization delays
+
+### When Adding New Files
+- **For Xcode Project:** Add Swift files directly to `/Users/trevorparker/Documents/mbient_labs/MetaWearSwiftApp/MetaWearSwiftApp/`
+- **For Documentation:** Update documentation files in this Cursor project when adding new features
+- **For Development:** Edit existing files directly through this environment
+- **For Testing:** Build and test immediately in Xcode
+
+### Documentation Updates
+- Update `README.md` when adding new features
+- Keep reference documents current with API changes
+- Document any new configuration options or data structures
+- Maintain troubleshooting guides
+
+## References
+
+### Documentation
+- [MetaWear Swift Combine SDK](https://github.com/mbientlab/MetaWear-Swift-Combine-SDK)
+- [MetaWear API Reference](MetaWear_API_Reference.md)
+- [MetaWear Motion Reference](MetaWear_Motion_Reference.md)
+- [MetaWear SDK Methods Reference](MetaWear_SDK_Methods_Reference.md)
+
+---
+
+**Note:** This Cursor project is designed to support macOS development with MetaWear sensors. All actual implementation, testing, and deployment occurs in the separate Xcode project. This project serves as a development support environment with direct file editing capabilities and documentation. All code should be compatible with macOS 10.15+ and Xcode 12.0+. 
+
+**Development Approach:** We now edit the actual Xcode project files directly through this Cursor environment, eliminating the need for a separate staging area and providing immediate feedback and iteration capabilities.
+**Note:** This Cursor project is designed to support macOS development with MetaWear sensors. All actual implementation, testing, and deployment occurs in the separate Xcode project. This project serves as a development support environment with direct file editing capabilities and documentation. All code should be compatible with macOS 10.15+ and Xcode 12.0+. 
+
+**Development Approach:** We now edit the actual Xcode project files directly through this Cursor environment, eliminating the need for a separate staging area and providing immediate feedback and iteration capabilities.
+
+# MetaWear macOS App - Cursor Rules
+
+**Always address the user as "Sir"**
+
+## Project Overview
+This Cursor project serves as a **development and support environment** for the main MetaWear macOS app. The actual implementation, testing, and deployment happens in the separate Xcode project.
+
+## Project Structure
+
+### Xcode Project Location (Primary Development)
+- **Main Xcode Project:** `/Users/trevorparker/Documents/mbient_labs/MetaWearSwiftApp`
+- **Purpose:** This is where all actual development, testing, and implementation occurs
+- **Build & Run:** All app testing and debugging happens here
+
+### Cursor Project Structure (Support Environment)
+- **Development Files:** `/Users/trevorparker/Documents/MetaWear_macOS_App`
+- **Purpose:** This project serves as a development support environment with documentation, development tools, and direct file editing capabilities
+
+## Development Workflow
+
+### Primary Development Process
+1. **All coding and testing** happens in the Xcode project at `/Users/trevorparker/Documents/mbient_labs/MetaWearSwiftApp`
+2. **This Cursor project** is used for:
+   - Direct editing of Xcode project files
+   - Documentation and planning
+   - Code review and analysis
+   - Development tools and utilities
+   - Real-time development with immediate feedback
+
+### Direct File Editing Approach
+- **Direct Editing:** We now edit the actual Xcode project files directly through this Cursor environment
+- **No Staging Area:** Removed the separate `Xcode_Project_Files/` folder to simplify the workflow
+- **Immediate Updates:** Changes are made directly to the source files in the Xcode project
+- **Real-time Development:** This approach provides:
+   - Direct access to actual project files
+   - Immediate testing and iteration
+   - Simplified workflow without file synchronization
+   - Better integration with Xcode development
+
+### Development Process
+When making changes in this Cursor project:
+1. **Edit** the actual Xcode project files directly
+2. **Build and test** in Xcode immediately
+3. **Iterate** quickly with real-time feedback
+4. **Update documentation** as needed
+
+## MetaWear SDK Integration
+
+### CRITICAL: Always Use the SDK
+**ALWAYS use the MetaWear Swift Combine SDK. Ask Trevor if you are trying NOT to use it.**
+
+### Reference Documents
+- **For Connection & Device Management:** Use `MetaWear_SDK_Methods_Reference.md`
+- **For Motion & Movement:** Use `MetaWear_Motion_Reference.md`
+- **For API Details:** Use `MetaWear_API_Reference.md`
+
+### SDK Usage Rules
+- **DO NOT use your best judgement or make assumptions**
+- **ALWAYS use methods that already exist in the SDK documentation**
+- **NEVER invent new methods or assume functionality exists**
+- **Only use documented, existing SDK methods**
+
+### CRITICAL: SDK Method Validation Process
+**BEFORE implementing any MetaWear functionality, you MUST:**
+
+1. **Search Existing Code First**: 
+   - Use `grep_search` to find existing working examples in the codebase
+   - Look for patterns in `SpeedCalculator.swift`, `HighFrequencyLogger.swift`, etc.
+   - NEVER invent new patterns without finding working examples
+
+2. **Validate API Patterns**:
+   - Check how existing code accesses `metawearManager.metawear` (not `.device`)
+   - Verify publisher chain patterns: `.publish().stream().receive(on:).handleEvents().sink()`
+   - Confirm data type access patterns (SIMD3<Float> vs tuples)
+   - Validate constructor parameters (e.g., magnetometer uses `freq:` not `rate:`)
+
+3. **Test Small Changes First**:
+   - Implement ONE sensor at a time
+   - Test compilation after each addition
+   - Use the working `SpeedCalculator.swift` as your template
+   - Copy exact patterns from working code
+
+4. **Common Pitfalls to Avoid**:
+   - ❌ Don't assume `.device` property exists (use `.metawear`)
+   - ❌ Don't destructure SIMD3<Float> as tuples (use `.x, .y, .z`)
+   - ❌ Don't use wrong constructor parameters (check SDK docs)
+   - ❌ Don't skip error handling in publisher chains
+   - ❌ Don't assume quaternion access patterns (check existing code)
 
 ## Coding Standards
 
@@ -211,45 +384,6 @@ device.publish()
 - Document any new configuration options or data structures
 - Maintain troubleshooting guides
 
-## Troubleshooting
-
-### Common Issues
-1. **"No such module 'MetaWear'"** - Check package dependencies in Xcode
-2. **Compilation errors** - Verify SDK version compatibility
-3. **Data not streaming** - Check device connection and permissions
-4. **Performance issues** - Adjust sample rate and data history size
-
-### What Went Wrong in Motion Playground Implementation
-**This is a case study of what NOT to do:**
-
-1. **❌ Assumed API Patterns**: 
-   - Used `.device` instead of `.metawear` property
-   - Used `publishWhenConnected()` instead of `publish()`
-   - Assumed tuple destructuring for SIMD3<Float>
-
-2. **❌ Didn't Check Existing Code First**:
-   - Should have copied patterns from `SpeedCalculator.swift`
-   - Should have used `grep_search` to find working examples
-   - Should have validated each method before implementing
-
-3. **❌ Implemented Too Much at Once**:
-   - Added multiple sensors simultaneously
-   - Created complex data processing chains
-   - Should have added ONE sensor, tested, then added the next
-
-4. **❌ Made Assumptions About Data Types**:
-   - Assumed quaternion access patterns
-   - Assumed magnetometer constructor parameters
-   - Should have checked SDK documentation first
-
-**LESSON LEARNED**: Always copy working patterns from existing code, test incrementally, and validate every assumption against the SDK documentation.
-
-### Debug Information
-- Use `print()` statements for debugging (already implemented)
-- Check console output for SDK status messages
-- Verify MetaWear device connectivity
-- Monitor memory usage with data history
-
 ## References
 
 ### Documentation
@@ -260,6 +394,9 @@ device.publish()
 
 ---
 
+**Note:** This Cursor project is designed to support macOS development with MetaWear sensors. All actual implementation, testing, and deployment occurs in the separate Xcode project. This project serves as a development support environment with direct file editing capabilities and documentation. All code should be compatible with macOS 10.15+ and Xcode 12.0+. 
+
+**Development Approach:** We now edit the actual Xcode project files directly through this Cursor environment, eliminating the need for a separate staging area and providing immediate feedback and iteration capabilities.
 **Note:** This Cursor project is designed to support macOS development with MetaWear sensors. All actual implementation, testing, and deployment occurs in the separate Xcode project. This project serves as a development support environment with direct file editing capabilities and documentation. All code should be compatible with macOS 10.15+ and Xcode 12.0+. 
 
 **Development Approach:** We now edit the actual Xcode project files directly through this Cursor environment, eliminating the need for a separate staging area and providing immediate feedback and iteration capabilities.
