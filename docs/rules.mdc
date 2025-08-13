@@ -211,7 +211,7 @@ This Cursor project serves as a **development and support environment** for the 
 ## Project Structure
 
 ### Xcode Project Location (Primary Development)
-- **Main Xcode Project:** `/Users/trevorparker/Documents/mbient_labs/MetaWearSwiftApp`
+- **Main Xcode Project:** `MetaWearSwiftApp/MetaWearSwiftApp.xcodeproj`
 - **Purpose:** This is where all actual development, testing, and implementation occurs
 - **Build & Run:** All app testing and debugging happens here
 
@@ -222,7 +222,7 @@ This Cursor project serves as a **development and support environment** for the 
 ## Development Workflow
 
 ### Primary Development Process
-1. **All coding and testing** happens in the Xcode project at `/Users/trevorparker/Documents/mbient_labs/MetaWearSwiftApp`
+1. **All coding and testing** happens in the Xcode project at `MetaWearSwiftApp/MetaWearSwiftApp.xcodeproj`
 2. **This Cursor project** is used for:
    - Direct editing of Xcode project files
    - Documentation and planning
@@ -374,7 +374,7 @@ device.publish()
 4. **Real-time Iteration:** Make changes and test without file synchronization delays
 
 ### When Adding New Files
-- **For Xcode Project:** Add Swift files directly to `/Users/trevorparker/Documents/mbient_labs/MetaWearSwiftApp/MetaWearSwiftApp/`
+- **For Xcode Project:** Add Swift files directly to `MetaWearSwiftApp/MetaWearSwiftApp/`
 - **For Documentation:** Update documentation files in this Cursor project when adding new features
 - **For Development:** Edit existing files directly through this environment
 - **For Testing:** Build and test immediately in Xcode
