@@ -20,29 +20,27 @@ A native macOS application for connecting to and streaming data from MbientLab M
 
 ```
 MetaWear_macOS_App/
-├── README.md                    # This file
-├── Xcode_Setup_Guide.md         # Step-by-step Xcode setup
-├── Working_Code.swift           # Current working Swift code
-├── MetaWear_API_Reference.md    # SDK documentation links
-└── Device_Info.md              # Sensor specifications
+├── MetaWearSwiftApp/                 # Xcode project and app sources (canonical)
+│   ├── MetaWearSwiftApp.xcodeproj/
+│   └── MetaWearSwiftApp/
+├── docs/                             # Documentation
+└── README.md                         # This file
 ```
 
 ## 🚀 Quick Start
 
-### 1. Create Xcode Project
+### 1. Open the Xcode Project
 1. Open Xcode
-2. Create new macOS App project
-3. Name: `MetaWearSwiftApp`
-4. Interface: SwiftUI
-5. Language: Swift
+2. File → Open…
+3. Select `MetaWearSwiftApp/MetaWearSwiftApp.xcodeproj`
 
 ### 2. Add MetaWear SDK
 1. File → Add Package Dependencies
 2. URL: `https://github.com/mbientlab/MetaWear-Swift-Combine-SDK`
 3. Add to your target
 
-### 3. Replace ContentView.swift
-Copy code from `Working_Code.swift` and replace the default ContentView.swift
+### 3. Sources
+All sources live in `MetaWearSwiftApp/MetaWearSwiftApp/`
 
 ### 4. Build and Run
 - Should compile without errors

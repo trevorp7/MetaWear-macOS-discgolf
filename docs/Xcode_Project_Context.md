@@ -1,7 +1,7 @@
 # MetaWear macOS App - Xcode Project Context
 
 ## 📍 Project Location
-**Primary Xcode Project:** `/Users/trevorparker/Documents/mbient_labs/MetaWearSwiftApp`
+**Primary Xcode Project:** `MetaWearSwiftApp/MetaWearSwiftApp.xcodeproj`
 
 ## 🏗️ Project Architecture
 

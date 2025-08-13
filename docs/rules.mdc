@@ -9,18 +9,19 @@ This Cursor project serves as a **development and support environment** for the 
 ## Project Structure
 
 ### Xcode Project Location (Primary Development)
-- **Main Xcode Project:** `/Users/trevorparker/Documents/mbient_labs/MetaWearSwiftApp`
+- **Main Xcode Project:** `MetaWearSwiftApp/MetaWearSwiftApp.xcodeproj`
 - **Purpose:** This is where all actual development, testing, and implementation occurs
-- **Build & Run:** All app testing and debugging happens here
+- **Build & Run:** Open the `.xcodeproj` above and run from Xcode
 
-### Cursor Project Structure (Support Environment)
-- **Development Files:** `/Users/trevorparker/Documents/MetaWear_macOS_App`
-- **Purpose:** This project serves as a development support environment with documentation, development tools, and direct file editing capabilities
+### Repository Structure
+- **Root (this repo):** `/Users/trevorparker/Documents/MetaWear_macOS_App`
+- **App source:** `MetaWearSwiftApp/` (checked into git)
+- **Purpose:** Single source of truth for code + docs; edit code here or in Xcode
 
 ## Development Workflow
 
 ### Primary Development Process
-1. **All coding and testing** happens in the Xcode project at `/Users/trevorparker/Documents/mbient_labs/MetaWearSwiftApp`
+1. **All coding and testing** happens in the Xcode project at `MetaWearSwiftApp/MetaWearSwiftApp.xcodeproj`
 2. **This Cursor project** is used for:
    - Direct editing of Xcode project files
    - Documentation and planning
@@ -29,7 +30,7 @@ This Cursor project serves as a **development and support environment** for the 
    - Real-time development with immediate feedback
 
 ### Direct File Editing Approach
-- **Direct Editing:** We now edit the actual Xcode project files directly through this Cursor environment
+- **Direct Editing:** Edit the Xcode project files directly inside `MetaWearSwiftApp/` from Cursor or Xcode
 - **No Staging Area:** Removed the separate `Xcode_Project_Files/` folder to simplify the workflow
 - **Immediate Updates:** Changes are made directly to the source files in the Xcode project
 - **Real-time Development:** This approach provides:
@@ -172,7 +173,7 @@ device.publish()
 4. **Real-time Iteration:** Make changes and test without file synchronization delays
 
 ### When Adding New Files
-- **For Xcode Project:** Add Swift files directly to `/Users/trevorparker/Documents/mbient_labs/MetaWearSwiftApp/MetaWearSwiftApp/`
+- **For Xcode Project:** Add Swift files directly to `MetaWearSwiftApp/MetaWearSwiftApp/`
 - **For Documentation:** Update documentation files in this Cursor project when adding new features
 - **For Development:** Edit existing files directly through this environment
 - **For Testing:** Build and test immediately in Xcode
