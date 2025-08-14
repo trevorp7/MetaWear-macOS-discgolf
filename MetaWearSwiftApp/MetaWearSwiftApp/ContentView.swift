@@ -24,46 +24,14 @@ struct ContentView: View {
                     Text("Connection")
                 }
                 .tag(0)
-            
-            // Motion Detection Test View
-            MotionDetectionTestView(metawearManager: metawearManager)
-                .tabItem {
-                    Image(systemName: "waveform.path.ecg")
-                    Text("Motion Test")
-                }
-                .tag(1)
-            
-            // High-Frequency Logger Test View
-            HighFrequencyLoggerTestView(metawearManager: metawearManager)
-                .tabItem {
-                    Image(systemName: "record.circle")
-                    Text("Logger Test")
-                }
-                .tag(2)
-            
-            // Integrated Throw Detector Test View
-            IntegratedThrowDetectorTestView(metawearManager: metawearManager)
-                .tabItem {
-                    Image(systemName: "gear")
-                    Text("Integrated Test")
-                }
-                .tag(3)
-            
-            // Speed Analysis View
-            SpeedAnalysisView(metawearManager: metawearManager)
-                .tabItem {
-                    Image(systemName: "chart.bar.fill")
-                    Text("Speed Analysis")
-                }
-                .tag(4)
-            
+	            
             // Speed Tracking View
             SpeedTrackingView(speedCalculator: speedCalculator, metawearManager: metawearManager)
                 .tabItem {
                     Image(systemName: "speedometer")
                     Text("Speed")
                 }
-                .tag(5)
+	                .tag(1)
             
             // Motion Recording View
             MotionRecordingView(metawearManager: metawearManager)
@@ -71,7 +39,7 @@ struct ContentView: View {
                     Image(systemName: "waveform.path.ecg.rectangle")
                     Text("Motion Recording")
                 }
-                .tag(6)
+	                .tag(2)
             
             // Motion Playground View
             MotionPlaygroundView(metawearManager: metawearManager)
@@ -79,7 +47,7 @@ struct ContentView: View {
                     Image(systemName: "target")
                     Text("Motion Playground")
                 }
-                .tag(7)
+	                .tag(3)
         }
         .frame(minWidth: 600, minHeight: 700)
         .onAppear {
@@ -166,6 +134,21 @@ struct ConnectedStateView: View {
             .padding()
             .background(Color.blue.opacity(0.05))
             .cornerRadius(12)
+	            
+	            // Device Info (Placeholder)
+	            VStack(alignment: .leading, spacing: 10) {
+	                Text("Device Info")
+	                    .font(.headline)
+	                
+	                VStack(alignment: .leading, spacing: 5) {
+	                    InfoRow(icon: "battery.100", text: "Battery: --%")
+	                    InfoRow(icon: "externaldrive", text: "Storage: -- MB used / -- MB total")
+	                    InfoRow(icon: "gearshape", text: "Firmware: --")
+	                }
+	            }
+	            .padding()
+	            .background(Color.gray.opacity(0.1))
+	            .cornerRadius(8)
             
             // Disconnect Button
             Button("Disconnect") {

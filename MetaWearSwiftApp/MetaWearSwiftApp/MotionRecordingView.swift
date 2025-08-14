@@ -23,6 +23,7 @@ struct MotionRecordingView: View {
     @ObservedObject var metawearManager: MetaWearManager
     @StateObject private var recordingManager = MotionRecordingManager()
     @State private var speedUnit: SpeedUnit = .mph
+    @State private var showFirst4gZoom: Bool = false
     
     var body: some View {
         ScrollView {
@@ -465,8 +466,25 @@ struct MotionRecordingView: View {
                 .fontWeight(.semibold)
             
             VStack(spacing: 16) {
+                // Toggle for 4g zoom window
+                HStack(spacing: 8) {
+                    Toggle("Zoom to first 4g event (±0.5s)", isOn: $showFirst4gZoom)
+                        .toggleStyle(SwitchToggleStyle())
+                        .scaleEffect(0.9)
+                    if showFirst4gZoom && first4gTimeWindow(in: data) == nil {
+                        Text("No 4g event found")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                }
+                
                 // Real accelerometer chart
-                AccelerometerChart(data: data)
+                if showFirst4gZoom, let window = first4gTimeWindow(in: data) {
+                    AccelerometerChart(data: data, timeWindow: window)
+                } else {
+                    AccelerometerChart(data: data)
+                }
                 
                 // Real speed chart
                 SpeedChart(data: data, speedUnit: $speedUnit)
@@ -490,6 +508,34 @@ struct MotionRecordingView: View {
                     )
             }
         }
+    }
+
+    // MARK: - 4g Window Detection
+    private func first4gTimeWindow(in data: MotionRecordingData) -> ClosedRange<Double>? {
+        guard !data.accelerometer.isEmpty else { return nil }
+        let start = data.recordingStartTime
+        for sample in data.accelerometer {
+            let v = sample.value
+            let mag = sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+            if mag >= 4.0 {
+                let t = sample.time.timeIntervalSince(start)
+                // Enforce a strict 1.0s window centered on the first 4g time
+                let half: Double = 0.5
+                let lower = max(0.0, t - half)
+                var upper = t + half
+                if upper > data.recordingDuration {
+                    // Shift the window left if we're near the end so it remains 1.0s wide
+                    let overflow = upper - data.recordingDuration
+                    let adjustedLower = max(0.0, lower - overflow)
+                    upper = data.recordingDuration
+                    if adjustedLower <= upper { return adjustedLower...upper }
+                } else {
+                    if lower <= upper { return lower...upper }
+                }
+                break
+            }
+        }
+        return nil
     }
     
     // MARK: - Helper Properties
@@ -692,6 +738,7 @@ extension DateFormatter {
 // MARK: - Accelerometer Chart
 struct AccelerometerChart: View {
     let data: MotionRecordingData
+    let timeWindow: ClosedRange<Double>?
     @State private var selectedAxis: AxisSelection = .all
     @State private var showMagnitude = true
     
@@ -701,6 +748,11 @@ struct AccelerometerChart: View {
         case y = "Y-Axis" 
         case z = "Z-Axis"
         case magnitude = "Magnitude"
+    }
+    
+    init(data: MotionRecordingData, timeWindow: ClosedRange<Double>? = nil) {
+        self.data = data
+        self.timeWindow = timeWindow
     }
     
     var body: some View {
@@ -729,15 +781,34 @@ struct AccelerometerChart: View {
                         x: .value("Time", point.time),
                         y: .value("Acceleration", point.value)
                     )
-                    .foregroundStyle(point.color)
+                    .foregroundStyle(by: .value("Series", point.series))
                     .lineStyle(StrokeStyle(lineWidth: point.lineWidth))
                 }
+                if let center = centerTime {
+                    RuleMark(x: .value("4g Event", center))
+                        .foregroundStyle(Color.gray)
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4,4]))
+                }
             }
-            .frame(height: 200)
+            .chartForegroundStyleScale([
+                "X-Axis": .red,
+                "Y-Axis": .green,
+                "Z-Axis": .blue,
+                "Magnitude": .purple
+            ])
+            .frame(height: timeWindow != nil ? 240 : 200)
             .chartXAxis {
-                AxisMarks(values: .automatic) { _ in
+                AxisMarks(values: timeWindow != nil ? .stride(by: 0.1) : .automatic) { value in
                     AxisGridLine()
-                    AxisValueLabel(format: .dateTime.second(.defaultDigits))
+                    AxisValueLabel {
+                        if let t: Double = value.as(Double.self) {
+                            if let c = centerTime {
+                                Text(String(format: "% .2fs", t - c))
+                            } else {
+                                Text(String(format: "%.2fs", t))
+                            }
+                        }
+                    }
                 }
             }
             .chartYAxis {
@@ -746,6 +817,7 @@ struct AccelerometerChart: View {
                     AxisValueLabel()
                 }
             }
+            .chartXScale(domain: xAxisRange)
             .chartYScale(domain: yAxisRange)
             .background(Color(NSColor.controlBackgroundColor))
             .cornerRadius(8)
@@ -788,41 +860,76 @@ struct AccelerometerChart: View {
     }
     
     // MARK: - Chart Data Processing
+    private var filteredAccelerometer: [(time: Double, value: SIMD3<Float>)] {
+        let start = data.recordingStartTime
+        return data.accelerometer.compactMap { sample in
+            let t = sample.time.timeIntervalSince(start)
+            if let w = timeWindow, (t < w.lowerBound || t > w.upperBound) { return nil }
+            return (t, sample.value)
+        }
+    }
+
+    private var xAxisRange: ClosedRange<Double> {
+        if let w = timeWindow { return w }
+        guard let first = filteredAccelerometer.first?.time, let last = filteredAccelerometer.last?.time else {
+            return 0...max(1, data.recordingDuration)
+        }
+        return first...last
+    }
+
+    private var centerTime: Double? {
+        guard let w = timeWindow else { return nil }
+        return (w.lowerBound + w.upperBound) / 2.0
+    }
+
     private var chartData: [ChartDataPoint] {
-        let startTime = data.recordingStartTime
         var points: [ChartDataPoint] = []
-        
-        for (index, sample) in data.accelerometer.enumerated() {
-            let timeOffset = sample.time.timeIntervalSince(startTime)
+
+        for (index, sample) in filteredAccelerometer.enumerated() {
+            let timeOffset = sample.time
             let id = "accel_\(index)"
-            
+
             switch selectedAxis {
             case .all:
-                points.append(ChartDataPoint(id: "\(id)_x", time: timeOffset, value: sample.value.x, color: .red, lineWidth: 1.5))
-                points.append(ChartDataPoint(id: "\(id)_y", time: timeOffset, value: sample.value.y, color: .green, lineWidth: 1.5))
-                points.append(ChartDataPoint(id: "\(id)_z", time: timeOffset, value: sample.value.z, color: .blue, lineWidth: 1.5))
+                points.append(ChartDataPoint(id: "\(id)_x", series: "X-Axis", time: timeOffset, value: sample.value.x, color: .red, lineWidth: 1.5))
+                points.append(ChartDataPoint(id: "\(id)_y", series: "Y-Axis", time: timeOffset, value: sample.value.y, color: .green, lineWidth: 1.5))
+                points.append(ChartDataPoint(id: "\(id)_z", series: "Z-Axis", time: timeOffset, value: sample.value.z, color: .blue, lineWidth: 1.5))
                 if showMagnitude {
-                    let magnitude = sqrt(sample.value.x * sample.value.x + sample.value.y * sample.value.y + sample.value.z * sample.value.z)
-                    points.append(ChartDataPoint(id: "\(id)_mag", time: timeOffset, value: magnitude, color: .purple, lineWidth: 2.0))
+                    let m = sqrt(sample.value.x * sample.value.x + sample.value.y * sample.value.y + sample.value.z * sample.value.z)
+                    points.append(ChartDataPoint(id: "\(id)_mag", series: "Magnitude", time: timeOffset, value: m, color: .purple, lineWidth: 2.0))
                 }
             case .x:
-                points.append(ChartDataPoint(id: id, time: timeOffset, value: sample.value.x, color: .red, lineWidth: 2.0))
+                points.append(ChartDataPoint(id: id, series: "X-Axis", time: timeOffset, value: sample.value.x, color: .red, lineWidth: 2.0))
             case .y:
-                points.append(ChartDataPoint(id: id, time: timeOffset, value: sample.value.y, color: .green, lineWidth: 2.0))
+                points.append(ChartDataPoint(id: id, series: "Y-Axis", time: timeOffset, value: sample.value.y, color: .green, lineWidth: 2.0))
             case .z:
-                points.append(ChartDataPoint(id: id, time: timeOffset, value: sample.value.z, color: .blue, lineWidth: 2.0))
+                points.append(ChartDataPoint(id: id, series: "Z-Axis", time: timeOffset, value: sample.value.z, color: .blue, lineWidth: 2.0))
             case .magnitude:
-                let magnitude = sqrt(sample.value.x * sample.value.x + sample.value.y * sample.value.y + sample.value.z * sample.value.z)
-                points.append(ChartDataPoint(id: id, time: timeOffset, value: magnitude, color: .purple, lineWidth: 2.0))
+                let m = sqrt(sample.value.x * sample.value.x + sample.value.y * sample.value.y + sample.value.z * sample.value.z)
+                points.append(ChartDataPoint(id: id, series: "Magnitude", time: timeOffset, value: m, color: .purple, lineWidth: 2.0))
             }
         }
-        
+
         return points
     }
-    
+
     private var yAxisRange: ClosedRange<Double> {
-        let maxG = Double(data.peakAcceleration)
-        let padding = maxG * 0.1 // 10% padding
+        var maxG: Double = 0
+        for sample in filteredAccelerometer {
+            switch selectedAxis {
+            case .x:
+                maxG = max(maxG, Double(abs(sample.value.x)))
+            case .y:
+                maxG = max(maxG, Double(abs(sample.value.y)))
+            case .z:
+                maxG = max(maxG, Double(abs(sample.value.z)))
+            case .magnitude, .all:
+                let m = sqrt(sample.value.x * sample.value.x + sample.value.y * sample.value.y + sample.value.z * sample.value.z)
+                maxG = max(maxG, Double(m))
+            }
+        }
+        if maxG == 0 { return -1...1 }
+        let padding = max(0.2, maxG * 0.1)
         return (-maxG - padding)...(maxG + padding)
     }
 }
@@ -931,14 +1038,14 @@ struct SpeedChart: View {
             for (i, v) in data.velocity.enumerated() {
                 let t = v.time.timeIntervalSince(start)
                 let id = "vel_\(i)"
-                points.append(ChartDataPoint(id: "\(id)_x", time: t, value: abs(v.value.x) * factor, color: .red, lineWidth: 1.5))
-                points.append(ChartDataPoint(id: "\(id)_y", time: t, value: abs(v.value.y) * factor, color: .green, lineWidth: 1.5))
-                points.append(ChartDataPoint(id: "\(id)_z", time: t, value: abs(v.value.z) * factor, color: .blue, lineWidth: 1.5))
+                points.append(ChartDataPoint(id: "\(id)_x", series: "X-Speed", time: t, value: abs(v.value.x) * factor, color: .red, lineWidth: 1.5))
+                points.append(ChartDataPoint(id: "\(id)_y", series: "Y-Speed", time: t, value: abs(v.value.y) * factor, color: .green, lineWidth: 1.5))
+                points.append(ChartDataPoint(id: "\(id)_z", series: "Z-Speed", time: t, value: abs(v.value.z) * factor, color: .blue, lineWidth: 1.5))
             }
         }
         for (i, s) in data.speed.enumerated() {
             let t = s.time.timeIntervalSince(start)
-            points.append(ChartDataPoint(id: "speedTotal_\(i)", time: t, value: s.value * factor, color: .orange, lineWidth: 2.0))
+            points.append(ChartDataPoint(id: "speedTotal_\(i)", series: "Total Speed", time: t, value: s.value * factor, color: .orange, lineWidth: 2.0))
         }
         return points
     }
@@ -992,6 +1099,7 @@ struct SpeedDataPoint {
 // MARK: - Chart Data Model
 struct ChartDataPoint {
     let id: String
+    let series: String
     let time: TimeInterval
     let value: Float
     let color: Color
