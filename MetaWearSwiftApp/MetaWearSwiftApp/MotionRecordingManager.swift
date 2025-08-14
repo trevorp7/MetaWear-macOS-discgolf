@@ -134,9 +134,10 @@ class MotionRecordingManager: ObservableObject {
     enum AccelSource: String, CaseIterable { case linearFusion, raw }
     @Published var accelSource: AccelSource = .linearFusion // UI selects before logging
     
-    // Simplified sensor fusion data structure
+    // Sensor fusion data aligned with gyro for gating
     struct SensorFusionData {
         let linearAcceleration: SIMD3<Float>  // Gravity-removed acceleration
+        let gyroMagnitudeDps: Float           // Gyro magnitude at (or nearest) sample time
     }
     
     init() {
@@ -577,6 +578,7 @@ class MotionRecordingManager: ObservableObject {
         // Build sensor fusion data from downloaded logs
         var sensorFusionData: [Timestamped<SensorFusionData>] = []
         var linearAccelByTime: [Date: SIMD3<Float>] = [:]
+        var gyroMagByTime: [Date: Float] = [:]
         
         var totalRowsProcessed = 0
         var totalRowsSkipped = 0
@@ -654,6 +656,8 @@ class MotionRecordingManager: ObservableObject {
                     let vector = SIMD3<Float>(x, y, z)
                     let timestampedData = Timestamped(time: date, value: vector)
                     gyroscopeData.append(timestampedData)
+                    let mag = sqrt(vector.x*vector.x + vector.y*vector.y + vector.z*vector.z)
+                    gyroMagByTime[date] = mag
                 case .magnetometer:
                     // Vector data - need X, Y, Z columns  
                     guard row.count >= 6 else { 
@@ -687,11 +691,27 @@ class MotionRecordingManager: ObservableObject {
         // Build sensor fusion data structure from collected data
         print("🔧 Building sensor fusion data structure...")
         let allTimestamps = linearAccelByTime.keys.sorted()
+        // Helper to find nearest gyro magnitude within 50 ms
+        func nearestGyroMag(for t: Date) -> Float {
+            // fast path direct hit
+            if let v = gyroMagByTime[t] { return v }
+            // search nearest within window
+            let window: TimeInterval = 0.05
+            var best: (dt: TimeInterval, mag: Float)? = nil
+            for (gt, mag) in gyroMagByTime {
+                let d = abs(gt.timeIntervalSince(t))
+                if d <= window {
+                    if best == nil || d < best!.dt { best = (d, mag) }
+                }
+            }
+            return best?.mag ?? 0.0
+        }
         
         for timestamp in allTimestamps {
             if let linearAccel = linearAccelByTime[timestamp] {
                 let fusionData = SensorFusionData(
-                    linearAcceleration: linearAccel
+                    linearAcceleration: linearAccel,
+                    gyroMagnitudeDps: nearestGyroMag(for: timestamp)
                 )
                 sensorFusionData.append(Timestamped(time: timestamp, value: fusionData))
             }
@@ -707,7 +727,7 @@ class MotionRecordingManager: ObservableObject {
             speedAndVelocity = calculateSpeedFromSensorFusionData(sensorFusionData)
         case .raw:
             print("🚀 Calculating speed from RAW accelerometer (gravity-removal + integration)...")
-            speedAndVelocity = calculateSpeedFromRawAccelerometer(accelerometerData)
+            speedAndVelocity = calculateSpeedFromRawAccelerometer(accelerometerData, gyroMagByTime: gyroMagByTime)
         }
         speedData = speedAndVelocity.speed
         velocityData = speedAndVelocity.velocity
@@ -780,10 +800,12 @@ class MotionRecordingManager: ObservableObject {
         var accelerationBias = SIMD3<Float>(0, 0, 0)
         var stationaryTimer: Float = 0.0
         var isCurrentlyMoving = false
+        var isAirborne: Bool = false
+        var airborneTimer: Float = 0.0
         
-        // Low-pass filter for acceleration
+        // Low-pass filter for acceleration (time-based)
         var filteredAcceleration = SIMD3<Float>(0, 0, 0)
-        let lowPassAlpha: Float = 0.1 // Filter coefficient
+        let accelTau: Float = 0.18
 
         // Motion detection via RMS with hysteresis
         // Estimate sample rate for window sizing
@@ -799,10 +821,13 @@ class MotionRecordingManager: ObservableObject {
         let baselineAlpha: Float = 0.05 // slow update when stationary
 
         // Hysteresis margins and debounce durations
-        let startHysteresisMargin: Float = 0.25 // m/s² above baseline to start moving
-        let stopHysteresisMargin: Float = 0.10  // m/s² above baseline to remain moving
+        let startHysteresisMargin: Float = 0.30 // m/s² above baseline to start moving
+        let stopHysteresisMargin: Float = 0.12  // m/s² above baseline to remain moving
         let startMinDuration: Float = 0.15      // seconds above start threshold to confirm start
-        let stopMinDuration: Float = 0.30       // seconds below stop threshold to confirm stop
+        let stopMinDuration: Float = 0.40       // seconds below stop threshold to confirm stop
+        let gyroAirborneDps: Float = 80.0
+        let gyroStationaryDps: Float = 15.0
+        let airborneMin: Float = 0.10
         var aboveStartTime: Float = 0.0
         var belowStopTime: Float = 0.0
         
@@ -854,8 +879,9 @@ class MotionRecordingManager: ObservableObject {
             // Use linear acceleration directly (already in device frame, gravity removed)
             let worldAcceleration = linearAcceleration
             
-            // Apply low-pass filter to reduce noise
-            filteredAcceleration = filteredAcceleration * (1.0 - lowPassAlpha) + worldAcceleration * lowPassAlpha
+            // Apply time-based low-pass filter to reduce noise
+            let alpha = 1 - exp(-clampedDeltaTime / accelTau)
+            filteredAcceleration = filteredAcceleration * (1 - alpha) + worldAcceleration * alpha
             
             // Calculate horizontal acceleration magnitude (ignore vertical)
             let horizontalAcceleration = SIMD2<Float>(filteredAcceleration.x, filteredAcceleration.y)
@@ -903,38 +929,34 @@ class MotionRecordingManager: ObservableObject {
                 belowStopTime = 0.0
             }
 
-            // ZUPT timer when under overall stationary threshold (close to baseline)
-            if rms < stopThreshold {
+            // Airborne detection via gyro + low accel
+            let gyroMag = currentData.value.gyroMagnitudeDps
+            if rms < stopThreshold && gyroMag > 80.0 { // airborne
+                airborneTimer += clampedDeltaTime
+                if airborneTimer > 0.10 { isAirborne = true }
+            } else if gyroMag < 15.0 && rms < stopThreshold {
+                isAirborne = false
+            }
+
+            // ZUPT only when NOT airborne and gyro is low
+            if !isAirborne && gyroMag < 15.0 && rms < stopThreshold {
                 stationaryTimer += clampedDeltaTime
                 if stationaryTimer > stationaryTimeThreshold {
-                    // Zero-velocity update (ZUPT) and bias update
                     velocity = SIMD3<Float>(0, 0, 0)
-                    accelerationBias = accelerationBias * 0.95 + filteredAcceleration * 0.05
+                    let biasAlpha: Float = 1 - exp(-clampedDeltaTime / 0.6)
+                    accelerationBias = accelerationBias * (1 - biasAlpha) + filteredAcceleration * biasAlpha
                 }
             } else {
                 stationaryTimer = 0.0
             }
             
-            var currentSpeed: Float = 0.0
-            
-            if isCurrentlyMoving {
-                // Remove bias from acceleration
-                let correctedAcceleration = filteredAcceleration - accelerationBias
-                
-                // Integrate acceleration to get velocity: v = v0 + a*dt
-                velocity = velocity + correctedAcceleration * clampedDeltaTime
-                
-                // Apply time-based velocity decay (not per-sample)
-                velocity = velocity * exp(-clampedDeltaTime / velocityDecayTau)
-                
-                // Calculate horizontal speed magnitude
-                let horizontalVelocity = SIMD2<Float>(velocity.x, velocity.y)
-                currentSpeed = sqrt(horizontalVelocity.x * horizontalVelocity.x + horizontalVelocity.y * horizontalVelocity.y)
-            } else {
-                // Device is stationary - speed should be zero
-                currentSpeed = 0.0
-                velocity = SIMD3<Float>(0, 0, 0)
-            }
+            // Integrate every sample; adjust decay if airborne
+            let correctedAcceleration = filteredAcceleration - accelerationBias
+            velocity = velocity + correctedAcceleration * clampedDeltaTime
+            let tauUse: Float = isAirborne ? 4.0 : velocityDecayTau
+            velocity = velocity * exp(-clampedDeltaTime / tauUse)
+            let horizontalVelocity = SIMD2<Float>(velocity.x, velocity.y)
+            let currentSpeed: Float = sqrt(horizontalVelocity.x * horizontalVelocity.x + horizontalVelocity.y * horizontalVelocity.y)
             
             let speedTimestamp = Timestamped(time: currentTimestamp, value: currentSpeed)
             speedData.append(speedTimestamp)
@@ -962,7 +984,7 @@ class MotionRecordingManager: ObservableObject {
     }
     
     // RAW accelerometer path: gravity removal (LPF when stationary) + integration
-    private func calculateSpeedFromRawAccelerometer(_ accel: [Timestamped<SIMD3<Float>>]) -> (speed: [Timestamped<Float>], velocity: [Timestamped<SIMD3<Float>>]) {
+    private func calculateSpeedFromRawAccelerometer(_ accel: [Timestamped<SIMD3<Float>>], gyroMagByTime: [Date: Float]) -> (speed: [Timestamped<Float>], velocity: [Timestamped<SIMD3<Float>>]) {
         guard accel.count > 1 else { return ([], []) }
         var speed: [Timestamped<Float>] = []
         var velocitySeries: [Timestamped<SIMD3<Float>>] = []
@@ -975,12 +997,21 @@ class MotionRecordingManager: ObservableObject {
         var gravity = SIMD3<Float>(0,0,0)
         var gravityInit = false
         let gravityAlphaMoving: Float = 0.02
-        let gravityAlphaStill: Float = 0.2
+        let gravityAlphaStill: Float = 0.25
         
         var velocity = SIMD3<Float>(0,0,0)
-        let tau: Float = 0.5
+        let tauInHand: Float = 0.5
         var stationaryTimer: Float = 0
         let zuptAfter: Float = 0.5
+        var isAirborne: Bool = false
+        var airborneTimer: Float = 0.0
+        let gyroAirborneDps: Float = 80.0
+        let gyroStationaryDps: Float = 15.0
+        let airborneMin: Float = 0.10
+        let accelTau: Float = 0.18
+        var filteredMotionA = SIMD3<Float>(0,0,0)
+        var prevMotionA = SIMD3<Float>(0,0,0)
+        let jerkImpact: Float = 22.0 // m/s^3, tune for impact detection
         
         for i in 0..<accel.count {
             let sample = accel[i]
@@ -988,29 +1019,50 @@ class MotionRecordingManager: ObservableObject {
             lastTime = sample.time
             if !(dt > 0 && dt < 1) { continue }
             let t = Float(sample.time.timeIntervalSince(startTime))
-            if t < warmup { velocity = .zero; gravity = .zero; gravityInit = false; stationaryTimer = 0; continue }
+            if t < warmup { velocity = .zero; gravity = .zero; gravityInit = false; stationaryTimer = 0; isAirborne = false; airborneTimer = 0; continue }
             
             // raw in g -> m/s^2
             let a = sample.value * g
             // gravity estimate update (faster when still)
-            let alpha = gravityInit ? (simd_length(a) < 0.3 ? gravityAlphaStill : gravityAlphaMoving) : 1.0
+            let motionPrev = a - gravity
+            let alpha = gravityInit ? (simd_length(motionPrev) < 0.25 ? gravityAlphaStill : gravityAlphaMoving) : 1.0
             gravity = gravity * (1 - alpha) + a * alpha
             gravityInit = true
             let motionA = a - gravity
+            // time-based EMA for motionA
+            let emaAlpha = 1 - exp(-dt / accelTau)
+            filteredMotionA = filteredMotionA * (1 - emaAlpha) + motionA * emaAlpha
+            // jerk for impact detection
+            let jerk = simd_length(filteredMotionA - prevMotionA) / max(dt, 1e-3)
+            prevMotionA = filteredMotionA
             
             // motion magnitude for stationary detection
-            let horiz = SIMD2<Float>(motionA.x, motionA.y)
+            let horiz = SIMD2<Float>(filteredMotionA.x, filteredMotionA.y)
             let mag = simd_length(horiz)
+            // airborne gating via gyro
+            let gyroMag = gyroMagByTime[sample.time] ?? 0
+            if mag < 0.12 && gyroMag > gyroAirborneDps { // low accel + high spin → airborne
+                airborneTimer += dt
+                if airborneTimer > airborneMin { isAirborne = true }
+            } else if gyroMag < gyroStationaryDps && mag < 0.10 { // low spin + low accel
+                isAirborne = false
+            }
+            // impact detection (jerk spike) ends airborne immediately
+            if jerk > jerkImpact { isAirborne = false; airborneTimer = 0 }
             if mag < 0.1 { // near still
                 stationaryTimer += dt
-                if stationaryTimer > zuptAfter { velocity = .zero }
+                if !isAirborne && gyroMag < gyroStationaryDps && stationaryTimer > zuptAfter {
+                    velocity = .zero
+                }
             } else {
                 stationaryTimer = 0
             }
             
             // integrate + time-based decay
-            velocity += motionA * dt
-            velocity *= exp(-dt / tau)
+            velocity += filteredMotionA * dt
+            // In-air: essentially no decay (drag negligible here)
+            let tauUse: Float = isAirborne ? 60.0 : tauInHand
+            velocity *= exp(-dt / tauUse)
             
             // outputs (horizontal speed only for chart consistency)
             let horizV = SIMD2<Float>(velocity.x, velocity.y)
