@@ -229,6 +229,9 @@ class SpeedCalculator: ObservableObject {
         let acceleration = data.value
         let timestamp = data.time
         
+        // Broadcast acceleration data for other components to use
+        NotificationCenter.default.post(name: NSNotification.Name("LinearAccelerationData"), object: data)
+        
         // print("📊 Received acceleration: \(acceleration) at \(timestamp)")
         
         // Convert from g's to m/s²
@@ -365,6 +368,9 @@ class SpeedCalculator: ObservableObject {
                 spinAxis = SIMD3<Float>(0, 0, angularVelocity.z > 0 ? 1 : -1)
             }
         }
+        
+        // Broadcast gyro data for other components to use
+        NotificationCenter.default.post(name: NSNotification.Name("GyroData"), object: averageSpinRate)
         
         // Update UI (now on main thread due to .receive(on: DispatchQueue.main))
         self.currentSpinRate = averageSpinRate

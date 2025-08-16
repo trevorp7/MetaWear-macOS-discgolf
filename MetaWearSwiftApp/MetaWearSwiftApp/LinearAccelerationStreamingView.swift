@@ -17,6 +17,8 @@ struct LinearAccelerationStreamingView: View {
                 statusSection
                 if streamingManager.isStreaming {
                     statisticsSection
+                    speedChartSection
+                    chartSection
                 }
                 Spacer(minLength: 50)
             }
@@ -26,13 +28,26 @@ struct LinearAccelerationStreamingView: View {
             streamingManager.configure(with: metawearManager)
         }
         .onReceive(speedCalculator.$currentSpeed) { speed in
-            // Update audio based on SpeedCalculator speed (already in mph)
-            if streamingManager.isAudioEnabled {
+            // Update audio based on selected mode
+            if streamingManager.isAudioEnabled && streamingManager.audioMode == .speed {
                 let now = Date()
                 if now.timeIntervalSince(streamingManager.lastAudioUpdate) >= streamingManager.audioUpdateInterval {
                     streamingManager.updateAudioFrequencyForSpeed(rawSpeed: speed)
                     streamingManager.lastAudioUpdate = now
                 }
+            }
+            
+            // Track speed data for chart
+            streamingManager.addSpeedDataPoint(speed: speed)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("LinearAccelerationData"))) { notification in
+            if let data = notification.object as? Timestamped<SIMD3<Float>> {
+                streamingManager.processAccelerationDataFromExternal(data)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("GyroData"))) { notification in
+            if let rpm = notification.object as? Double {
+                streamingManager.processGyroDataFromExternal(rpm: rpm)
             }
         }
     }
@@ -79,6 +94,7 @@ struct LinearAccelerationStreamingView: View {
                         filterControlSlider
                         
                         if streamingManager.isAudioEnabled {
+                            audioModeSelector
                             audioSmoothingSlider
                             audioSensitivitySlider
                         }
@@ -174,7 +190,7 @@ struct LinearAccelerationStreamingView: View {
                 Image(systemName: "waveform.path")
                     .foregroundColor(.blue)
                     .font(.caption)
-                Text("Data Smoothing")
+                Text("Acceleration Data Smoothing")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
@@ -222,24 +238,70 @@ struct LinearAccelerationStreamingView: View {
         .cornerRadius(8)
     }
     
+    private var audioModeSelector: some View {
+        VStack(spacing: 4) {
+            HStack {
+                Image(systemName: "waveform.circle")
+                    .foregroundColor(.purple)
+                    .font(.caption)
+                Text("Audio Source")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text(streamingManager.audioMode.rawValue)
+                    .font(.caption)
+                    .foregroundColor(.purple)
+                    .fontWeight(.semibold)
+            }
+            
+            Picker("Audio Mode", selection: $streamingManager.audioMode) {
+                ForEach(AudioMode.allCases, id: \.self) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(SegmentedPickerStyle())
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(Color.purple.opacity(0.05))
+        .cornerRadius(8)
+    }
+    
     private var audioSensitivitySlider: some View {
         VStack(spacing: 4) {
             HStack {
                 Image(systemName: "slider.horizontal.3")
                     .foregroundColor(.green)
                     .font(.caption)
-                Text("Speed Sensitivity")
+                Text(streamingManager.audioMode == .speed ? "Speed Sensitivity" : streamingManager.audioMode == .acceleration ? "Acceleration Sensitivity" : "Gyro Sensitivity")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
-                Text("\(streamingManager.audioSensitivity, specifier: "%.1f") mph")
-                    .font(.caption)
-                    .foregroundColor(.green)
-                    .fontWeight(.semibold)
+                if streamingManager.audioMode == .speed {
+                    Text("\(streamingManager.audioSensitivity, specifier: "%.1f") mph")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                        .fontWeight(.semibold)
+                } else if streamingManager.audioMode == .acceleration {
+                    Text("\(streamingManager.audioSensitivity, specifier: "%.2f") g")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                        .fontWeight(.semibold)
+                } else {
+                    Text("\(streamingManager.audioSensitivity, specifier: "%.0f") RPM")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                        .fontWeight(.semibold)
+                }
             }
             
-            Slider(value: $streamingManager.audioSensitivity, in: 0.5...3.0) {
-                Text("Speed Threshold")
+            Slider(value: $streamingManager.audioSensitivity, in: 
+                streamingManager.audioMode == .speed ? 0.0...3.0 : 
+                streamingManager.audioMode == .acceleration ? 0.0...0.5 : 
+                0.0...50.0) {
+                Text(streamingManager.audioMode == .speed ? "Speed Threshold" : 
+                     streamingManager.audioMode == .acceleration ? "Acceleration Threshold" : 
+                     "Gyro Threshold")
             }
             .accentColor(.green)
         }
@@ -496,6 +558,70 @@ struct LinearAccelerationStreamingView: View {
             }
         }
     }
+    
+    private var speedChartSection: some View {
+        VStack(spacing: 16) {
+            Text("Speed Data")
+                .font(.headline)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            speedChart
+        }
+    }
+    
+    private var speedChart: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Speed (0-5 mph)")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+            
+            Chart {
+                let speedPoints = streamingManager.recentSpeedDataPoints
+                ForEach(speedPoints, id: \.timestamp) { dataPoint in
+                    let timeMark = LineMark(
+                        x: .value("Time", dataPoint.relativeTime),
+                        y: .value("Speed", dataPoint.speed)
+                    )
+                    timeMark
+                        .foregroundStyle(.green)
+                        .lineStyle(StrokeStyle(lineWidth: 3))
+                }
+            }
+            .frame(height: 150)
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: 5)) { value in
+                    AxisGridLine()
+                    AxisTick()
+                    AxisValueLabel() {
+                        if let time = value.as(Double.self) {
+                            Text("\(time, specifier: "%.1f")s")
+                        }
+                    }
+                }
+            }
+            .chartYAxis {
+                AxisMarks { value in
+                    AxisGridLine()
+                    AxisTick()
+                    AxisValueLabel() {
+                        if let speed = value.as(Double.self) {
+                            Text("\(speed, specifier: "%.1f") mph")
+                        }
+                    }
+                }
+            }
+            .chartYScale(domain: 0...5)
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.green.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.green.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+    }
 }
 
 struct StatCard: View {
@@ -531,6 +657,7 @@ struct StatCard: View {
 class LinearAccelerationStreamingManager: ObservableObject {
     @Published var isStreaming = false
     @Published var dataPoints: [AccelerationDataPoint] = []
+    @Published var speedDataPoints: [LinearAccelerationSpeedDataPoint] = []
     @Published var currentMagnitude: Double = 0.0
     @Published var maxMagnitude: Double = 0.0
     @Published var averageMagnitude: Double = 0.0
@@ -539,7 +666,8 @@ class LinearAccelerationStreamingManager: ObservableObject {
     @Published var currentAudioFrequency: String = "440 Hz"
     @Published var filterStrength: Double = 0.6  // More aggressive default
     @Published var audioSmoothingStrength: Double = 0.8  // Audio-specific smoothing
-    @Published var audioSensitivity: Double = 1.0  // Threshold for audio activation (in mph)
+    @Published var audioSensitivity: Double = 0.0  // Threshold for audio activation (in mph)
+    @Published var audioMode: AudioMode = .speed  // Audio source selection
     
     private var metawearManager: MetaWearManager?
     private var cancellables = Set<AnyCancellable>()
@@ -556,7 +684,7 @@ class LinearAccelerationStreamingManager: ObservableObject {
     
     // Audio throttling and smoothing
     var lastAudioUpdate = Date()
-    let audioUpdateInterval = 0.033 // ~30Hz update rate for better reactivity
+    let audioUpdateInterval = 0.016 // ~60Hz update rate for reduced lag
     private var smoothedAudioMagnitude: Double = 0.0
     private var smoothedSpeed: Double = 0.0
     
@@ -567,6 +695,16 @@ class LinearAccelerationStreamingManager: ObservableObject {
         let windowStart = max(0, currentTime - chartDisplayWindow)
         
         return dataPoints.filter { dataPoint in
+            dataPoint.relativeTime >= windowStart
+        }
+    }
+    
+    var recentSpeedDataPoints: [LinearAccelerationSpeedDataPoint] {
+        guard let startTime = streamingStartTime else { return [] }
+        let currentTime = Date().timeIntervalSince(startTime)
+        let windowStart = max(0, currentTime - chartDisplayWindow)
+        
+        return speedDataPoints.filter { dataPoint in
             dataPoint.relativeTime >= windowStart
         }
     }
@@ -591,40 +729,19 @@ class LinearAccelerationStreamingManager: ObservableObject {
     }
     
     func startStreaming(device: MetaWear) {
-        guard !isStreaming else { return }
+        guard !isStreaming else { 
+            print("🟣 Already streaming, skipping start")
+            return 
+        }
         
-        print("🟣 Starting linear acceleration and speed streaming...")
-        
-        let linearAccel = MWSensorFusion.LinearAcceleration(mode: .ndof)
+        print("🟣 Starting linear acceleration streaming manager...")
         
         streamingStartTime = Date()
         isStreaming = true
         resetData()
         startDurationTimer()
         
-        // Stream linear acceleration for display
-        device.publish()
-            .stream(linearAccel)
-            .sink(
-                receiveCompletion: { [weak self] completion in
-                    switch completion {
-                    case .finished:
-                        print("🟣 Linear acceleration streaming completed")
-                    case .failure(let error):
-                        print("❌ Linear acceleration streaming error: \(error)")
-                        DispatchQueue.main.async {
-                            self?.stopStreaming()
-                        }
-                    }
-                },
-                receiveValue: { [weak self] data in
-                    self?.processAccelerationData(data)
-                }
-            )
-            .store(in: &cancellables)
-        
-        
-        print("🟣 Linear acceleration and speed streaming started successfully")
+        print("🟣 Linear acceleration streaming manager started (data will come from SpeedCalculator)")
     }
     
     func stopStreaming() {
@@ -648,6 +765,7 @@ class LinearAccelerationStreamingManager: ObservableObject {
     
     func resetData() {
         dataPoints.removeAll()
+        speedDataPoints.removeAll()
         currentMagnitude = 0.0
         maxMagnitude = 0.0
         averageMagnitude = 0.0
@@ -707,6 +825,15 @@ class LinearAccelerationStreamingManager: ObservableObject {
             if !self.dataPoints.isEmpty {
                 self.averageMagnitude = self.dataPoints.map { $0.magnitude }.reduce(0, +) / Double(self.dataPoints.count)
             }
+            
+            // Update audio for acceleration mode
+            if self.isAudioEnabled && self.audioMode == .acceleration {
+                let now = Date()
+                if now.timeIntervalSince(self.lastAudioUpdate) >= self.audioUpdateInterval {
+                    self.updateAudioFrequency(rawMagnitude: Double(magnitude))
+                    self.lastAudioUpdate = now
+                }
+            }
         }
     }
     
@@ -715,28 +842,35 @@ class LinearAccelerationStreamingManager: ObservableObject {
         // Apply heavy smoothing specifically for audio
         smoothedAudioMagnitude = smoothedAudioMagnitude * audioSmoothingStrength + rawMagnitude * (1.0 - audioSmoothingStrength)
         
-        // Mute below threshold - no hiss until crossing threshold
-        guard smoothedAudioMagnitude > audioSensitivity else {
+        // Use adjustable threshold (audioSensitivity is now acceleration threshold in g's)
+        let accelerationThreshold = audioSensitivity
+        
+        // Mute below threshold - no sound until acceleration detected
+        guard smoothedAudioMagnitude > accelerationThreshold else {
             audioGenerator?.setVolume(0.0)
             currentAudioFrequency = "0 Hz"
             return
         }
         
-        let adjustedMagnitude = smoothedAudioMagnitude - audioSensitivity
+        let adjustedMagnitude = smoothedAudioMagnitude - accelerationThreshold
         
-        // Focus on 0.2-3g primary range (most activity happens here)
-        let primaryRange = 3.0 - audioSensitivity
+        // Focus on threshold to 3g range with high sensitivity
+        let primaryRange = 3.0 - accelerationThreshold
         let normalizedMagnitude = min(adjustedMagnitude / primaryRange, 1.0)
         
-        // Wind-like frequency range - lower and more natural
-        let minFreq = 100.0
-        let maxFreq = 600.0
-        let frequency = minFreq + (normalizedMagnitude * (maxFreq - minFreq))
+        // Apply gentle exponential curve for better sensitivity without being too aggressive
+        // Using power of 0.7 gives good response without being too dramatic
+        let exponentialMagnitude = pow(normalizedMagnitude, 0.7)
         
-        // Gradual volume mapping for wind effect
-        let minVolume = 0.01
-        let maxVolume = 0.06
-        let volume = minVolume + (normalizedMagnitude * (maxVolume - minVolume))
+        // Wind-like frequency range - natural and pleasant
+        let minFreq = 80.0
+        let maxFreq = 300.0
+        let frequency = minFreq + (exponentialMagnitude * (maxFreq - minFreq))
+        
+        // More aggressive volume changes for better feedback
+        let minVolume = 0.005
+        let maxVolume = 0.12
+        let volume = minVolume + (pow(exponentialMagnitude, 0.5) * (maxVolume - minVolume))
         
         audioGenerator?.setFrequency(frequency)
         audioGenerator?.setVolume(volume)
@@ -759,23 +893,59 @@ class LinearAccelerationStreamingManager: ObservableObject {
         
         let adjustedSpeed = smoothedSpeed - speedThreshold
         
-        // Focus on threshold to 15 mph range
-        let primaryRange = 15.0 - speedThreshold
+        // Focus on threshold to 5 mph range
+        let primaryRange = 5.0 - speedThreshold
         let normalizedSpeed = min(adjustedSpeed / primaryRange, 1.0)
         
-        // Apply exponential curve for more sensitivity at lower speeds
-        // Using square root gives more response at lower speeds without being too aggressive
-        let exponentialSpeed = sqrt(normalizedSpeed)
+        // Apply gentle exponential curve for better sensitivity without being too aggressive
+        // Using power of 0.7 gives good response without being too dramatic
+        let exponentialSpeed = pow(normalizedSpeed, 0.7)
         
-        // Wind-like frequency range for speed
+        // Wind-like frequency range - natural and pleasant
         let minFreq = 80.0
-        let maxFreq = 500.0
+        let maxFreq = 300.0
         let frequency = minFreq + (exponentialSpeed * (maxFreq - minFreq))
         
-        // Volume mapping for speed (also using exponential curve)
-        let minVolume = 0.015
-        let maxVolume = 0.08
-        let volume = minVolume + (exponentialSpeed * (maxVolume - minVolume))
+        // More aggressive volume changes for better feedback
+        let minVolume = 0.005
+        let maxVolume = 0.12
+        let volume = minVolume + (pow(exponentialSpeed, 0.5) * (maxVolume - minVolume))
+        
+        audioGenerator?.setFrequency(frequency)
+        audioGenerator?.setVolume(volume)
+        currentAudioFrequency = String(format: "%.0f Hz", frequency)
+    }
+    
+    func updateAudioFrequencyForGyro(rawRPM: Double) {
+        // Use adjustable threshold (audioSensitivity is now gyro threshold in RPM)
+        let gyroThreshold = audioSensitivity
+        
+        // Mute below threshold - no sound until spinning
+        guard rawRPM > gyroThreshold else {
+            audioGenerator?.setVolume(0.0)
+            currentAudioFrequency = "0 Hz"
+            return
+        }
+        
+        let adjustedRPM = rawRPM - gyroThreshold
+        
+        // Focus on threshold to 200 RPM range
+        let primaryRange = 200.0 - gyroThreshold
+        let normalizedRPM = min(adjustedRPM / primaryRange, 1.0)
+        
+        // Apply gentle exponential curve for better sensitivity without being too aggressive
+        // Using power of 0.7 gives good response without being too dramatic
+        let exponentialRPM = pow(normalizedRPM, 0.7)
+        
+        // Wind-like frequency range - natural and pleasant
+        let minFreq = 80.0
+        let maxFreq = 300.0
+        let frequency = minFreq + (exponentialRPM * (maxFreq - minFreq))
+        
+        // More aggressive volume changes for better feedback
+        let minVolume = 0.005
+        let maxVolume = 0.12
+        let volume = minVolume + (pow(exponentialRPM, 0.5) * (maxVolume - minVolume))
         
         audioGenerator?.setFrequency(frequency)
         audioGenerator?.setVolume(volume)
@@ -806,6 +976,43 @@ class LinearAccelerationStreamingManager: ObservableObject {
         let alpha = Float(1.0 - filterStrength) // Higher filterStrength = more smoothing
         return alpha * newValue + (1.0 - alpha) * movingAverage
     }
+    
+    func addSpeedDataPoint(speed: Double) {
+        guard let startTime = streamingStartTime, isStreaming else { return }
+        let relativeTime = Date().timeIntervalSince(startTime)
+        
+        let dataPoint = LinearAccelerationSpeedDataPoint(
+            timestamp: Date(),
+            relativeTime: relativeTime,
+            speed: speed
+        )
+        
+        DispatchQueue.main.async {
+            self.speedDataPoints.append(dataPoint)
+            
+            // Keep a reasonable number of speed data points
+            if self.speedDataPoints.count > self.maxDataPoints {
+                self.speedDataPoints.removeFirst(self.speedDataPoints.count - self.maxDataPoints)
+            }
+        }
+    }
+    
+    func processAccelerationDataFromExternal(_ data: Timestamped<SIMD3<Float>>) {
+        // Only process if streaming is active
+        guard isStreaming else { return }
+        processAccelerationData(data)
+    }
+    
+    func processGyroDataFromExternal(rpm: Double) {
+        // Only process if streaming is active and gyro mode is selected
+        guard isStreaming, isAudioEnabled, audioMode == .gyro else { return }
+        
+        let now = Date()
+        if now.timeIntervalSince(lastAudioUpdate) >= audioUpdateInterval {
+            updateAudioFrequencyForGyro(rawRPM: rpm)
+            lastAudioUpdate = now
+        }
+    }
 }
 
 struct AccelerationDataPoint {
@@ -813,6 +1020,18 @@ struct AccelerationDataPoint {
     let relativeTime: TimeInterval
     let acceleration: SIMD3<Float>
     let magnitude: Double
+}
+
+struct LinearAccelerationSpeedDataPoint {
+    let timestamp: Date
+    let relativeTime: TimeInterval
+    let speed: Double
+}
+
+enum AudioMode: String, CaseIterable {
+    case speed = "Speed"
+    case acceleration = "Acceleration"
+    case gyro = "Gyro"
 }
 
 
@@ -826,8 +1045,8 @@ class SimpleAudioGenerator {
     private var currentVolume: Double = 0.003
     private var phase: Double = 0.0
     private var sampleRate: Double = 44100.0
-    private let frequencySmoothing: Double = 0.98 // Less aggressive for better reactivity
-    private let volumeSmoothing: Double = 0.95 // Less aggressive for better reactivity
+    private let frequencySmoothing: Double = 0.92 // Reduced for faster response
+    private let volumeSmoothing: Double = 0.88 // Reduced for faster response
     
     init() {
         setupAudio()
@@ -858,10 +1077,10 @@ class SimpleAudioGenerator {
                 self.currentFrequency = self.currentFrequency * self.frequencySmoothing + self.targetFrequency * (1.0 - self.frequencySmoothing)
                 self.currentVolume = self.currentVolume * self.volumeSmoothing + self.targetVolume * (1.0 - self.volumeSmoothing)
                 
-                // Generate wind-like sample (sine + noise for texture)
+                // Generate clean sine wave sample (noise commented out per user request)
                 let sineSample = sin(2.0 * Double.pi * self.phase)
-                let noiseSample = (Double.random(in: -1...1)) * 0.3  // Low-level noise
-                let sample = sineSample * 0.7 + noiseSample * 0.3    // Blend sine + noise for wind effect
+                // let noiseSample = (Double.random(in: -1...1)) * 0.3  // Low-level noise (commented out)
+                let sample = sineSample // Pure sine wave without noise
                 let scaledSample = Float(sample * self.currentVolume)
                 
                 // Write to all channels
