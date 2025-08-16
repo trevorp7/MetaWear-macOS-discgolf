@@ -150,7 +150,6 @@ struct ConnectedStateView: View {
 	                
 	                                VStack(alignment: .leading, spacing: 5) {
                     InfoRow(icon: "battery.100", text: "Battery: \(metawearManager.batteryLevel >= 0 ? "\(metawearManager.batteryLevel)%" : "--%")")
-                    InfoRow(icon: "bolt.fill", text: "Charging: \(metawearManager.isCharging ? "Yes" : "No")")
                     InfoRow(icon: "externaldrive", text: "Storage: -- MB used / -- MB total")
                     InfoRow(icon: "gearshape", text: "Firmware: --")
                 }
@@ -350,7 +349,6 @@ class MetaWearManager: ObservableObject {
     @Published var bluetoothState: String = "Unknown"
     @Published var discoveredDevices: [String] = []
     @Published var batteryLevel: Int = -1
-    @Published var isCharging: Bool = false
     
     init() {
         print("🔵 MetaWearManager initialized")
@@ -407,44 +405,7 @@ class MetaWearManager: ObservableObject {
             .store(in: &cancellables)
     }
     
-    func checkChargingStatus() {
-        guard let device = metawear, device.peripheral.state == .connected else {
-            print("⚠️ Cannot check charging status - device not connected")
-            return
-        }
-        
-        print("🔌 Checking charging status...")
-        
-        device.publish()
-            .read(.chargingStatus)
-            .sink(
-                receiveCompletion: { completion in
-                    switch completion {
-                    case .finished:
-                        print("✅ Charging status read completed")
-                    case .failure(let error):
-                        print("❌ Charging status read failed: \(error)")
-                    }
-                },
-                receiveValue: { [weak self] chargingData in
-                    let (timestamp, status) = chargingData
-                    print("🔌 Charging status: \(status) at \(timestamp)")
-                    
-                    DispatchQueue.main.async {
-                        self?.isCharging = (status == .charging)
-                        
-                        if status == .charging {
-                            print("✅ Device is charging")
-                        } else if status == .notCharging {
-                            print("⚠️ Device is not charging")
-                        } else {
-                            print("❓ Charging status unknown")
-                        }
-                    }
-                }
-            )
-            .store(in: &cancellables)
-    }
+
     
     func performBatteryDiagnostics() {
         print("🔋 Performing battery diagnostics...")
@@ -462,11 +423,9 @@ class MetaWearManager: ObservableObject {
             // Wait a moment then check battery
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                 self.checkBatteryLevel()
-                self.checkChargingStatus()
             }
         } else {
             checkBatteryLevel()
-            checkChargingStatus()
         }
     }
     

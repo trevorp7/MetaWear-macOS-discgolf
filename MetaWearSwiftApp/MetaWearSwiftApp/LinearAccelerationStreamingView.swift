@@ -7,6 +7,7 @@ import AVFoundation
 struct LinearAccelerationStreamingView: View {
     @ObservedObject var metawearManager: MetaWearManager
     @StateObject private var streamingManager = LinearAccelerationStreamingManager()
+    @StateObject private var speedCalculator = SpeedCalculator()
     
     var body: some View {
         ScrollView {
@@ -15,7 +16,6 @@ struct LinearAccelerationStreamingView: View {
                 controlsSection
                 statusSection
                 if streamingManager.isStreaming {
-                    chartSection
                     statisticsSection
                 }
                 Spacer(minLength: 50)
@@ -24,6 +24,16 @@ struct LinearAccelerationStreamingView: View {
         }
         .onAppear {
             streamingManager.configure(with: metawearManager)
+        }
+        .onReceive(speedCalculator.$currentSpeed) { speed in
+            // Update audio based on SpeedCalculator speed (already in mph)
+            if streamingManager.isAudioEnabled {
+                let now = Date()
+                if now.timeIntervalSince(streamingManager.lastAudioUpdate) >= streamingManager.audioUpdateInterval {
+                    streamingManager.updateAudioFrequencyForSpeed(rawSpeed: speed)
+                    streamingManager.lastAudioUpdate = now
+                }
+            }
         }
     }
     
@@ -60,9 +70,18 @@ struct LinearAccelerationStreamingView: View {
                 connectionStatusRow
                 streamingControlButton
                 if streamingManager.isStreaming {
-                    HStack(spacing: 12) {
-                        resetDataButton
-                        audioToggleButton
+                    VStack(spacing: 8) {
+                        HStack(spacing: 12) {
+                            resetDataButton
+                            audioToggleButton
+                        }
+                        
+                        filterControlSlider
+                        
+                        if streamingManager.isAudioEnabled {
+                            audioSmoothingSlider
+                            audioSensitivitySlider
+                        }
                     }
                 }
             }
@@ -95,8 +114,10 @@ struct LinearAccelerationStreamingView: View {
         Button(action: {
             if streamingManager.isStreaming {
                 streamingManager.stopStreaming()
+                speedCalculator.stopSpeedTracking()
             } else if let device = metawearManager.metawear, metawearManager.isConnected {
                 streamingManager.startStreaming(device: device)
+                speedCalculator.startSpeedTracking(device: device)
             }
         }) {
             HStack {
@@ -145,6 +166,87 @@ struct LinearAccelerationStreamingView: View {
             .background(streamingManager.isAudioEnabled ? Color.orange : Color.orange.opacity(0.1))
             .cornerRadius(8)
         }
+    }
+    
+    private var filterControlSlider: some View {
+        VStack(spacing: 4) {
+            HStack {
+                Image(systemName: "waveform.path")
+                    .foregroundColor(.blue)
+                    .font(.caption)
+                Text("Data Smoothing")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text("\(Int(streamingManager.filterStrength * 100))%")
+                    .font(.caption)
+                    .foregroundColor(.blue)
+                    .fontWeight(.semibold)
+            }
+            
+            Slider(value: $streamingManager.filterStrength, in: 0...0.95) {
+                Text("Data Smoothing")
+            }
+            .accentColor(.blue)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(Color.blue.opacity(0.05))
+        .cornerRadius(8)
+    }
+    
+    private var audioSmoothingSlider: some View {
+        VStack(spacing: 4) {
+            HStack {
+                Image(systemName: "speaker.wave.2")
+                    .foregroundColor(.orange)
+                    .font(.caption)
+                Text("Audio Smoothing")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text("\(Int(streamingManager.audioSmoothingStrength * 100))%")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                    .fontWeight(.semibold)
+            }
+            
+            Slider(value: $streamingManager.audioSmoothingStrength, in: 0...0.98) {
+                Text("Audio Smoothing")
+            }
+            .accentColor(.orange)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(Color.orange.opacity(0.05))
+        .cornerRadius(8)
+    }
+    
+    private var audioSensitivitySlider: some View {
+        VStack(spacing: 4) {
+            HStack {
+                Image(systemName: "slider.horizontal.3")
+                    .foregroundColor(.green)
+                    .font(.caption)
+                Text("Speed Sensitivity")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text("\(streamingManager.audioSensitivity, specifier: "%.1f") mph")
+                    .font(.caption)
+                    .foregroundColor(.green)
+                    .fontWeight(.semibold)
+            }
+            
+            Slider(value: $streamingManager.audioSensitivity, in: 0.5...3.0) {
+                Text("Speed Threshold")
+            }
+            .accentColor(.green)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(Color.green.opacity(0.05))
+        .cornerRadius(8)
     }
     
     private var statusSection: some View {
@@ -255,6 +357,7 @@ struct LinearAccelerationStreamingView: View {
                     }
                 }
             }
+            .chartYScale(domain: -5...5)
             .chartLegend(position: .bottom) {
                 HStack(spacing: 20) {
                     HStack(spacing: 4) {
@@ -331,6 +434,7 @@ struct LinearAccelerationStreamingView: View {
                     }
                 }
             }
+            .chartYScale(domain: 0...10)
             .padding()
             .background(
                 RoundedRectangle(cornerRadius: 12)
@@ -342,6 +446,7 @@ struct LinearAccelerationStreamingView: View {
             )
         }
     }
+    
     
     private var statisticsSection: some View {
         VStack(spacing: 16) {
@@ -366,6 +471,20 @@ struct LinearAccelerationStreamingView: View {
                     value: String(format: "%.2f g", streamingManager.maxMagnitude),
                     icon: "arrow.up.circle.fill",
                     color: .red
+                )
+                
+                StatCard(
+                    title: "Current Speed",
+                    value: String(format: "%.1f mph", speedCalculator.currentSpeed),
+                    icon: "speedometer",
+                    color: .green
+                )
+                
+                StatCard(
+                    title: "Max Speed",
+                    value: String(format: "%.1f mph", speedCalculator.maxSpeed),
+                    icon: "arrow.up.circle.fill",
+                    color: .orange
                 )
                 
                 StatCard(
@@ -418,6 +537,9 @@ class LinearAccelerationStreamingManager: ObservableObject {
     @Published var streamingDuration: String = "0s"
     @Published var isAudioEnabled = false
     @Published var currentAudioFrequency: String = "440 Hz"
+    @Published var filterStrength: Double = 0.6  // More aggressive default
+    @Published var audioSmoothingStrength: Double = 0.8  // Audio-specific smoothing
+    @Published var audioSensitivity: Double = 1.0  // Threshold for audio activation (in mph)
     
     private var metawearManager: MetaWearManager?
     private var cancellables = Set<AnyCancellable>()
@@ -428,6 +550,17 @@ class LinearAccelerationStreamingManager: ObservableObject {
     private let maxDataPoints = 1000
     private let chartDisplayWindow = 10.0
     
+    // Filtering  
+    private var rawDataBuffer: [SIMD3<Float>] = []
+    private let filterWindowSize = 10  // Larger window for more smoothing
+    
+    // Audio throttling and smoothing
+    var lastAudioUpdate = Date()
+    let audioUpdateInterval = 0.033 // ~30Hz update rate for better reactivity
+    private var smoothedAudioMagnitude: Double = 0.0
+    private var smoothedSpeed: Double = 0.0
+    
+    
     var recentDataPoints: [AccelerationDataPoint] {
         guard let startTime = streamingStartTime else { return [] }
         let currentTime = Date().timeIntervalSince(startTime)
@@ -437,6 +570,7 @@ class LinearAccelerationStreamingManager: ObservableObject {
             dataPoint.relativeTime >= windowStart
         }
     }
+    
     
     func configure(with manager: MetaWearManager) {
         self.metawearManager = manager
@@ -459,7 +593,7 @@ class LinearAccelerationStreamingManager: ObservableObject {
     func startStreaming(device: MetaWear) {
         guard !isStreaming else { return }
         
-        print("🟣 Starting linear acceleration streaming...")
+        print("🟣 Starting linear acceleration and speed streaming...")
         
         let linearAccel = MWSensorFusion.LinearAcceleration(mode: .ndof)
         
@@ -468,6 +602,7 @@ class LinearAccelerationStreamingManager: ObservableObject {
         resetData()
         startDurationTimer()
         
+        // Stream linear acceleration for display
         device.publish()
             .stream(linearAccel)
             .sink(
@@ -488,7 +623,8 @@ class LinearAccelerationStreamingManager: ObservableObject {
             )
             .store(in: &cancellables)
         
-        print("🟣 Linear acceleration streaming started successfully")
+        
+        print("🟣 Linear acceleration and speed streaming started successfully")
     }
     
     func stopStreaming() {
@@ -516,6 +652,8 @@ class LinearAccelerationStreamingManager: ObservableObject {
         maxMagnitude = 0.0
         averageMagnitude = 0.0
         streamingStartTime = Date()
+        rawDataBuffer.removeAll() // Clear filter buffer
+        smoothedAudioMagnitude = 0.0 // Reset audio smoothing
     }
     
     private func startDurationTimer() {
@@ -540,8 +678,11 @@ class LinearAccelerationStreamingManager: ObservableObject {
     }
     
     private func processAccelerationData(_ data: Timestamped<SIMD3<Float>>) {
-        let acceleration = data.value
-        let magnitude = sqrt(acceleration.x * acceleration.x + acceleration.y * acceleration.y + acceleration.z * acceleration.z)
+        let rawAcceleration = data.value
+        
+        // Apply filtering
+        let filteredAcceleration = applyFilter(rawAcceleration)
+        let magnitude = sqrt(filteredAcceleration.x * filteredAcceleration.x + filteredAcceleration.y * filteredAcceleration.y + filteredAcceleration.z * filteredAcceleration.z)
         
         guard let startTime = streamingStartTime else { return }
         let relativeTime = data.time.timeIntervalSince(startTime)
@@ -549,7 +690,7 @@ class LinearAccelerationStreamingManager: ObservableObject {
         let dataPoint = AccelerationDataPoint(
             timestamp: data.time,
             relativeTime: relativeTime,
-            acceleration: acceleration,
+            acceleration: filteredAcceleration,
             magnitude: Double(magnitude)
         )
         
@@ -566,23 +707,104 @@ class LinearAccelerationStreamingManager: ObservableObject {
             if !self.dataPoints.isEmpty {
                 self.averageMagnitude = self.dataPoints.map { $0.magnitude }.reduce(0, +) / Double(self.dataPoints.count)
             }
-            
-            // Update audio frequency if enabled
-            if self.isAudioEnabled {
-                self.updateAudioFrequency(magnitude: Double(magnitude))
-            }
         }
     }
     
-    private func updateAudioFrequency(magnitude: Double) {
-        // Map magnitude (0-10g typical range) to frequency (200-2000 Hz)
-        let minFreq = 200.0
-        let maxFreq = 2000.0
-        let normalizedMagnitude = min(magnitude / 10.0, 1.0) // Cap at 10g
+    
+    private func updateAudioFrequency(rawMagnitude: Double) {
+        // Apply heavy smoothing specifically for audio
+        smoothedAudioMagnitude = smoothedAudioMagnitude * audioSmoothingStrength + rawMagnitude * (1.0 - audioSmoothingStrength)
+        
+        // Mute below threshold - no hiss until crossing threshold
+        guard smoothedAudioMagnitude > audioSensitivity else {
+            audioGenerator?.setVolume(0.0)
+            currentAudioFrequency = "0 Hz"
+            return
+        }
+        
+        let adjustedMagnitude = smoothedAudioMagnitude - audioSensitivity
+        
+        // Focus on 0.2-3g primary range (most activity happens here)
+        let primaryRange = 3.0 - audioSensitivity
+        let normalizedMagnitude = min(adjustedMagnitude / primaryRange, 1.0)
+        
+        // Wind-like frequency range - lower and more natural
+        let minFreq = 100.0
+        let maxFreq = 600.0
         let frequency = minFreq + (normalizedMagnitude * (maxFreq - minFreq))
         
+        // Gradual volume mapping for wind effect
+        let minVolume = 0.01
+        let maxVolume = 0.06
+        let volume = minVolume + (normalizedMagnitude * (maxVolume - minVolume))
+        
         audioGenerator?.setFrequency(frequency)
+        audioGenerator?.setVolume(volume)
         currentAudioFrequency = String(format: "%.0f Hz", frequency)
+    }
+    
+    func updateAudioFrequencyForSpeed(rawSpeed: Double) {
+        // Apply heavy smoothing specifically for audio
+        smoothedSpeed = smoothedSpeed * audioSmoothingStrength + rawSpeed * (1.0 - audioSmoothingStrength)
+        
+        // Use adjustable threshold (audioSensitivity is now speed threshold in mph)
+        let speedThreshold = audioSensitivity
+        
+        // Mute below threshold - no sound until moving
+        guard smoothedSpeed > speedThreshold else {
+            audioGenerator?.setVolume(0.0)
+            currentAudioFrequency = "0 Hz"
+            return
+        }
+        
+        let adjustedSpeed = smoothedSpeed - speedThreshold
+        
+        // Focus on threshold to 15 mph range
+        let primaryRange = 15.0 - speedThreshold
+        let normalizedSpeed = min(adjustedSpeed / primaryRange, 1.0)
+        
+        // Apply exponential curve for more sensitivity at lower speeds
+        // Using square root gives more response at lower speeds without being too aggressive
+        let exponentialSpeed = sqrt(normalizedSpeed)
+        
+        // Wind-like frequency range for speed
+        let minFreq = 80.0
+        let maxFreq = 500.0
+        let frequency = minFreq + (exponentialSpeed * (maxFreq - minFreq))
+        
+        // Volume mapping for speed (also using exponential curve)
+        let minVolume = 0.015
+        let maxVolume = 0.08
+        let volume = minVolume + (exponentialSpeed * (maxVolume - minVolume))
+        
+        audioGenerator?.setFrequency(frequency)
+        audioGenerator?.setVolume(volume)
+        currentAudioFrequency = String(format: "%.0f Hz", frequency)
+    }
+    
+    private func applyFilter(_ newValue: SIMD3<Float>) -> SIMD3<Float> {
+        // Add new value to buffer
+        rawDataBuffer.append(newValue)
+        
+        // Keep only the last N values for moving average
+        if rawDataBuffer.count > filterWindowSize {
+            rawDataBuffer.removeFirst()
+        }
+        
+        // Apply exponential moving average for smoother results
+        if rawDataBuffer.count == 1 {
+            return newValue // First value, no filtering needed
+        }
+        
+        // Calculate moving average
+        let sum = rawDataBuffer.reduce(SIMD3<Float>(0, 0, 0)) { result, value in
+            return result + value
+        }
+        let movingAverage = sum / Float(rawDataBuffer.count)
+        
+        // Blend with exponential smoothing based on filter strength
+        let alpha = Float(1.0 - filterStrength) // Higher filterStrength = more smoothing
+        return alpha * newValue + (1.0 - alpha) * movingAverage
     }
 }
 
@@ -593,12 +815,19 @@ struct AccelerationDataPoint {
     let magnitude: Double
 }
 
+
 class SimpleAudioGenerator {
     private var audioEngine: AVAudioEngine?
-    private var toneGenerator: AVAudioPlayerNode?
-    private var audioFormat: AVAudioFormat?
+    private var sourceNode: AVAudioSourceNode?
     private var isPlaying = false
-    private var frequency: Double = 440.0 // Default A4 note
+    private var targetFrequency: Double = 440.0
+    private var currentFrequency: Double = 440.0
+    private var targetVolume: Double = 0.003
+    private var currentVolume: Double = 0.003
+    private var phase: Double = 0.0
+    private var sampleRate: Double = 44100.0
+    private let frequencySmoothing: Double = 0.98 // Less aggressive for better reactivity
+    private let volumeSmoothing: Double = 0.95 // Less aggressive for better reactivity
     
     init() {
         setupAudio()
@@ -606,18 +835,56 @@ class SimpleAudioGenerator {
     
     private func setupAudio() {
         audioEngine = AVAudioEngine()
-        toneGenerator = AVAudioPlayerNode()
         
-        guard let engine = audioEngine, let player = toneGenerator else { return }
+        guard let engine = audioEngine else { return }
         
-        engine.attach(player)
+        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
         
-        // Set up audio format (44.1kHz, mono)
-        audioFormat = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1)
+        // Create a source node for continuous audio generation
+        sourceNode = AVAudioSourceNode { [weak self] _, _, frameCount, audioBufferList -> OSStatus in
+            guard let self = self, self.isPlaying else {
+                // Fill with silence when not playing
+                let ablPointer = UnsafeMutableAudioBufferListPointer(audioBufferList)
+                for buffer in ablPointer {
+                    memset(buffer.mData, 0, Int(buffer.mDataByteSize))
+                }
+                return noErr
+            }
+            
+            let ablPointer = UnsafeMutableAudioBufferListPointer(audioBufferList)
+            
+            for frame in 0..<Int(frameCount) {
+                // Smooth frequency and volume transitions
+                self.currentFrequency = self.currentFrequency * self.frequencySmoothing + self.targetFrequency * (1.0 - self.frequencySmoothing)
+                self.currentVolume = self.currentVolume * self.volumeSmoothing + self.targetVolume * (1.0 - self.volumeSmoothing)
+                
+                // Generate wind-like sample (sine + noise for texture)
+                let sineSample = sin(2.0 * Double.pi * self.phase)
+                let noiseSample = (Double.random(in: -1...1)) * 0.3  // Low-level noise
+                let sample = sineSample * 0.7 + noiseSample * 0.3    // Blend sine + noise for wind effect
+                let scaledSample = Float(sample * self.currentVolume)
+                
+                // Write to all channels
+                for buffer in ablPointer {
+                    let buf: UnsafeMutableBufferPointer<Float> = UnsafeMutableBufferPointer(buffer)
+                    buf[frame] = scaledSample
+                }
+                
+                // Update phase correctly to maintain continuity
+                let phaseIncrement = self.currentFrequency / self.sampleRate
+                self.phase += phaseIncrement
+                if self.phase >= 1.0 {
+                    self.phase -= 1.0
+                }
+            }
+            
+            return noErr
+        }
         
-        guard let format = audioFormat else { return }
+        guard let source = sourceNode else { return }
         
-        engine.connect(player, to: engine.mainMixerNode, format: format)
+        engine.attach(source)
+        engine.connect(source, to: engine.mainMixerNode, format: format)
         
         do {
             try engine.start()
@@ -627,60 +894,28 @@ class SimpleAudioGenerator {
     }
     
     func start() {
-        guard !isPlaying, let player = toneGenerator, let format = audioFormat else { return }
-        
+        guard !isPlaying else { return }
         isPlaying = true
-        
-        // Generate a continuous tone buffer
-        let sampleRate = format.sampleRate
-        let frameCount = AVAudioFrameCount(sampleRate * 0.1) // 100ms buffer
-        
-        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return }
-        buffer.frameLength = frameCount
-        
-        generateToneBuffer(buffer: buffer, frequency: frequency)
-        
-        player.scheduleBuffer(buffer, at: nil, options: .loops) {
-            // Buffer completed
-        }
-        
-        player.play()
-        
-        print("🔊 Audio tone started at \(frequency) Hz")
+        phase = 0.0 // Reset phase
+        currentFrequency = targetFrequency
+        currentVolume = targetVolume
+        print("🔊 Continuous audio tone started at \(targetFrequency) Hz")
     }
     
     func stop() {
-        guard isPlaying, let player = toneGenerator else { return }
-        
-        player.stop()
+        guard isPlaying else { return }
         isPlaying = false
-        
-        print("🔇 Audio tone stopped")
+        print("🔇 Continuous audio tone stopped")
     }
     
     func setFrequency(_ newFrequency: Double) {
-        guard newFrequency != frequency else { return }
-        
-        frequency = newFrequency
-        
-        // If playing, update the tone
-        if isPlaying {
-            stop()
-            start()
-        }
+        // Set target frequency for smooth transitions with safety bounds
+        targetFrequency = max(50.0, min(2000.0, newFrequency))
     }
     
-    private func generateToneBuffer(buffer: AVAudioPCMBuffer, frequency: Double) {
-        guard let channelData = buffer.floatChannelData?[0] else { return }
-        
-        let sampleRate = buffer.format.sampleRate
-        let frameCount = Int(buffer.frameLength)
-        
-        for frame in 0..<frameCount {
-            let sampleTime = Double(frame) / sampleRate
-            let sample = sin(2.0 * Double.pi * frequency * sampleTime)
-            channelData[frame] = Float(sample * 0.3) // Reduced volume
-        }
+    func setVolume(_ newVolume: Double) {
+        // Set target volume for smooth transitions with safety bounds
+        targetVolume = max(0.001, min(0.1, newVolume))
     }
     
     deinit {

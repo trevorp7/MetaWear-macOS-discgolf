@@ -229,7 +229,7 @@ class SpeedCalculator: ObservableObject {
         let acceleration = data.value
         let timestamp = data.time
         
-        print("📊 Received acceleration: \(acceleration) at \(timestamp)")
+        // print("📊 Received acceleration: \(acceleration) at \(timestamp)")
         
         // Convert from g's to m/s²
         let accelerationMps2 = acceleration * gToMps2
@@ -299,7 +299,7 @@ class SpeedCalculator: ObservableObject {
         let angularVel = data.value
         let timestamp = data.time
         
-        print("🔄 Received angular velocity: \(angularVel) at \(timestamp)")
+        // print("🔄 Received angular velocity: \(angularVel) at \(timestamp)")
         
         // Check if we have a previous timestamp
         guard lastSpinTimestamp != nil else {
