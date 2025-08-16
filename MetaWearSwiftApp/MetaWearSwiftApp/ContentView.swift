@@ -41,13 +41,21 @@ struct ContentView: View {
                 }
 	                .tag(2)
             
+            // Linear Acceleration Streaming View
+            LinearAccelerationStreamingView(metawearManager: metawearManager)
+                .tabItem {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                    Text("Linear Acceleration")
+                }
+                .tag(3)
+            
             // Motion Playground View
             MotionPlaygroundView(metawearManager: metawearManager)
                 .tabItem {
                     Image(systemName: "target")
                     Text("Motion Playground")
                 }
-	                .tag(3)
+	                .tag(4)
         }
         .frame(minWidth: 600, minHeight: 700)
         .onAppear {
@@ -140,15 +148,51 @@ struct ConnectedStateView: View {
 	                Text("Device Info")
 	                    .font(.headline)
 	                
-	                VStack(alignment: .leading, spacing: 5) {
-	                    InfoRow(icon: "battery.100", text: "Battery: --%")
-	                    InfoRow(icon: "externaldrive", text: "Storage: -- MB used / -- MB total")
-	                    InfoRow(icon: "gearshape", text: "Firmware: --")
-	                }
+	                                VStack(alignment: .leading, spacing: 5) {
+                    InfoRow(icon: "battery.100", text: "Battery: \(metawearManager.batteryLevel >= 0 ? "\(metawearManager.batteryLevel)%" : "--%")")
+                    InfoRow(icon: "bolt.fill", text: "Charging: \(metawearManager.isCharging ? "Yes" : "No")")
+                    InfoRow(icon: "externaldrive", text: "Storage: -- MB used / -- MB total")
+                    InfoRow(icon: "gearshape", text: "Firmware: --")
+                }
 	            }
 	            .padding()
 	            .background(Color.gray.opacity(0.1))
 	            .cornerRadius(8)
+            
+            // Battery Diagnostics Button
+            Button("🔋 Check Battery") {
+                metawearManager.performBatteryDiagnostics()
+            }
+            .buttonStyle(.bordered)
+            .tint(.orange)
+            
+            // Troubleshooting Info
+            if metawearManager.batteryLevel <= 20 && metawearManager.batteryLevel >= 0 {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("⚠️ Low Battery Warning")
+                        .font(.headline)
+                        .foregroundColor(.orange)
+                    
+                    Text("Battery level is \(metawearManager.batteryLevel)%. Low battery can cause connection issues.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Text("💡 Solutions:")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("• Charge the device for 30+ minutes")
+                        Text("• Try connecting while charging")
+                        Text("• Restart the device if needed")
+                    }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
+                .padding()
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(8)
+            }
             
             // Disconnect Button
             Button("Disconnect") {
@@ -305,6 +349,8 @@ class MetaWearManager: ObservableObject {
     @Published var deviceAddress = "CF:3C:F4:38:61:9E"
     @Published var bluetoothState: String = "Unknown"
     @Published var discoveredDevices: [String] = []
+    @Published var batteryLevel: Int = -1
+    @Published var isCharging: Bool = false
     
     init() {
         print("🔵 MetaWearManager initialized")
@@ -318,6 +364,111 @@ class MetaWearManager: ObservableObject {
     @Published var metawear: MetaWear?
     private var scanner: MetaWearScanner?
     private var cancellables = Set<AnyCancellable>()
+    
+    // MARK: - Battery Management
+    func checkBatteryLevel() {
+        guard let device = metawear, device.peripheral.state == .connected else {
+            print("⚠️ Cannot check battery - device not connected")
+            return
+        }
+        
+        print("🔋 Checking battery level...")
+        
+        device.publish()
+            .read(.batteryLevel)
+            .sink(
+                receiveCompletion: { completion in
+                    switch completion {
+                    case .finished:
+                        print("✅ Battery level read completed")
+                    case .failure(let error):
+                        print("❌ Battery level read failed: \(error)")
+                    }
+                },
+                receiveValue: { [weak self] batteryData in
+                    let (timestamp, level) = batteryData
+                    print("🔋 Battery level: \(level)% at \(timestamp)")
+                    
+                    DispatchQueue.main.async {
+                        self?.batteryLevel = level
+                        
+                        // Check if battery is critically low
+                        if level <= 10 {
+                            print("⚠️ CRITICAL: Battery level is \(level)% - this may cause connection issues!")
+                            print("💡 Solution: Charge the device for at least 30 minutes")
+                        } else if level <= 20 {
+                            print("⚠️ WARNING: Battery level is \(level)% - consider charging soon")
+                        } else {
+                            print("✅ Battery level is good: \(level)%")
+                        }
+                    }
+                }
+            )
+            .store(in: &cancellables)
+    }
+    
+    func checkChargingStatus() {
+        guard let device = metawear, device.peripheral.state == .connected else {
+            print("⚠️ Cannot check charging status - device not connected")
+            return
+        }
+        
+        print("🔌 Checking charging status...")
+        
+        device.publish()
+            .read(.chargingStatus)
+            .sink(
+                receiveCompletion: { completion in
+                    switch completion {
+                    case .finished:
+                        print("✅ Charging status read completed")
+                    case .failure(let error):
+                        print("❌ Charging status read failed: \(error)")
+                    }
+                },
+                receiveValue: { [weak self] chargingData in
+                    let (timestamp, status) = chargingData
+                    print("🔌 Charging status: \(status) at \(timestamp)")
+                    
+                    DispatchQueue.main.async {
+                        self?.isCharging = (status == .charging)
+                        
+                        if status == .charging {
+                            print("✅ Device is charging")
+                        } else if status == .notCharging {
+                            print("⚠️ Device is not charging")
+                        } else {
+                            print("❓ Charging status unknown")
+                        }
+                    }
+                }
+            )
+            .store(in: &cancellables)
+    }
+    
+    func performBatteryDiagnostics() {
+        print("🔋 Performing battery diagnostics...")
+        
+        guard let device = metawear else {
+            print("❌ No device available for battery diagnostics")
+            return
+        }
+        
+        // Check if device is connected
+        if device.peripheral.state != .connected {
+            print("⚠️ Device not connected - attempting to connect for battery check...")
+            device.connect()
+            
+            // Wait a moment then check battery
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                self.checkBatteryLevel()
+                self.checkChargingStatus()
+            }
+        } else {
+            checkBatteryLevel()
+            checkChargingStatus()
+        }
+    }
     
     func connect() async {
         print("🔵 Connect function called")
@@ -512,6 +663,11 @@ class MetaWearManager: ObservableObject {
             print("✅ Connected to MetaWear device: \(deviceAddress)")
             print("📱 Device is ready for speed tracking")
             
+            // Perform battery diagnostics after successful connection
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self.performBatteryDiagnostics()
+            }
+            
         } catch {
             print("❌ Device discovery or connection failed: \(error)")
             
@@ -529,6 +685,11 @@ class MetaWearManager: ObservableObject {
                         print("❌ Device discovery timeout - scanning took too long")
                     case 3:
                         print("❌ Connection timeout - device found but connection failed")
+                        print("💡 Possible causes:")
+                        print("   - Low battery (charge device for 30+ minutes)")
+                        print("   - Device in sleep mode (try pressing button)")
+                        print("   - Bluetooth interference (move closer to device)")
+                        print("   - Device needs restart (hold button for 5 seconds)")
                     case 4:
                         print("❌ Device not fully connected - state issue")
                     default:

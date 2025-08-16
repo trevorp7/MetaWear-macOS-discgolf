@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		620800C02E3C0A9D001493E3 /* MetaWearSwiftAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 620800BF2E3C0A9D001493E3 /* MetaWearSwiftAppApp.swift */; };
 		620800C72E3C0A9F001493E3 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 620800C62E3C0A9F001493E3 /* Preview Assets.xcassets */; };
+		62537C432E501F7D00D809E6 /* LinearAccelerationStreamingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62537C422E501F7D00D809E6 /* LinearAccelerationStreamingView.swift */; };
 		62787A012E3C28D70011A7C9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627879F02E3C28D40011A7C9 /* ContentView.swift */; };
 		62787A022E3C28D70011A7C9 /* DeviceTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627879F12E3C28D40011A7C9 /* DeviceTest.swift */; };
 		62787A032E3C28D70011A7C9 /* ContinuationTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627879F22E3C28D40011A7C9 /* ContinuationTest.swift */; };
@@ -40,6 +41,7 @@
 		620800BF2E3C0A9D001493E3 /* MetaWearSwiftAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetaWearSwiftAppApp.swift; sourceTree = "<group>"; };
 		620800C62E3C0A9F001493E3 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		620800C82E3C0A9F001493E3 /* MetaWearSwiftApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MetaWearSwiftApp.entitlements; sourceTree = "<group>"; };
+		62537C422E501F7D00D809E6 /* LinearAccelerationStreamingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LinearAccelerationStreamingView.swift; sourceTree = "<group>"; };
 		627879F02E3C28D40011A7C9 /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		627879F12E3C28D40011A7C9 /* DeviceTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeviceTest.swift; sourceTree = "<group>"; };
 		627879F22E3C28D40011A7C9 /* ContinuationTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContinuationTest.swift; sourceTree = "<group>"; };
@@ -110,6 +112,7 @@
 				62787A242E4C2C380011A7C9 /* MotionRecordingManager.swift */,
 				62787A252E4C2C380011A7C9 /* MotionRecordingView.swift */,
 				62787A1D2E3C5B460011A7C9 /* IntegratedThrowDetectorTestView.swift */,
+				62537C422E501F7D00D809E6 /* LinearAccelerationStreamingView.swift */,
 				627879F12E3C28D40011A7C9 /* DeviceTest.swift */,
 				627879F72E3C28D50011A7C9 /* MetaWearSwiftApp.entitlements */,
 				627879F52E3C28D50011A7C9 /* MetaWearSwiftAppApp.swift */,
@@ -236,6 +239,7 @@
 				62787A0A2E3C28D70011A7C9 /* TestCompilation.swift in Sources */,
 				62787A1E2E3C5B460011A7C9 /* IntegratedThrowDetector.swift in Sources */,
 				62787A1F2E3C5B460011A7C9 /* IntegratedThrowDetectorTestView.swift in Sources */,
+				62537C432E501F7D00D809E6 /* LinearAccelerationStreamingView.swift in Sources */,
 				62787A1B2E3C56620011A7C9 /* HighFrequencyLoggerTestView.swift in Sources */,
 				62787A272E4C2C380011A7C9 /* MotionRecordingView.swift in Sources */,
 				62787A162E3C54750011A7C9 /* MotionDetector.swift in Sources */,

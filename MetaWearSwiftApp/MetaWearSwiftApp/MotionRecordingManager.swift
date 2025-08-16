@@ -825,9 +825,6 @@ class MotionRecordingManager: ObservableObject {
         let stopHysteresisMargin: Float = 0.12  // m/s² above baseline to remain moving
         let startMinDuration: Float = 0.15      // seconds above start threshold to confirm start
         let stopMinDuration: Float = 0.40       // seconds below stop threshold to confirm stop
-        let gyroAirborneDps: Float = 80.0
-        let gyroStationaryDps: Float = 15.0
-        let airborneMin: Float = 0.10
         var aboveStartTime: Float = 0.0
         var belowStopTime: Float = 0.0
         
